@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/server-auth";
-import { q } from "@/lib/queries";
+import { q, setAssignments } from "@/lib/queries";
 import { errorResponse } from "@/lib/http";
 
 const CATEGORIES = [
@@ -107,28 +107,6 @@ export async function POST(request: Request) {
     );
   } catch (e) {
     return errorResponse(e);
-  }
-}
-
-export async function setAssignments(
-  exerciseId: string,
-  body: Record<string, unknown>
-) {
-  const groupIds = Array.isArray(body.groupIds) ? body.groupIds.map(String) : [];
-  const studentIds = Array.isArray(body.studentIds) ? body.studentIds.map(String) : [];
-
-  await q(`DELETE FROM exercise_assignments WHERE exercise_id = $1`, [exerciseId]);
-  for (const g of groupIds) {
-    await q(
-      `INSERT INTO exercise_assignments (exercise_id, group_id) VALUES ($1, $2::uuid)`,
-      [exerciseId, g]
-    );
-  }
-  for (const s of studentIds) {
-    await q(
-      `INSERT INTO exercise_assignments (exercise_id, student_id) VALUES ($1, $2::uuid)`,
-      [exerciseId, s]
-    );
   }
 }
 

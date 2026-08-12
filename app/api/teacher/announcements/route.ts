@@ -89,7 +89,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function notifyTargets(
+async function notifyTargets(
   title: string,
   content: string,
   target: string,

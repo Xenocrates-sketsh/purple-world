@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/server-auth";
-import { q, assertExists } from "@/lib/queries";
+import { q, assertExists, setAssignments } from "@/lib/queries";
 import { errorResponse } from "@/lib/http";
-import { setAssignments } from "../../route";
 import { notify } from "@/lib/notify";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
