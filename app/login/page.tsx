@@ -12,6 +12,14 @@ import { Label } from "@/components/ui/label";
 import { useAuth, authErrorMessage } from "@/lib/auth-context";
 
 export default function LoginPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <LoginForm />
+    </React.Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "";
