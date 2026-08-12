@@ -30,7 +30,14 @@ export async function apiFetch<T>(
     }
     if (res.status === 401) {
       if (typeof window !== "undefined") {
-        window.location.href = "/login";
+        const path = window.location.pathname;
+        if (
+          path !== "/login" &&
+          path !== "/register" &&
+          !path.startsWith("/.netlify")
+        ) {
+          window.location.href = "/login";
+        }
       }
     }
     throw new ApiError(message, res.status);
