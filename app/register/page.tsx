@@ -26,6 +26,7 @@ export default function RegisterPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [verifying, setVerifying] = React.useState(false);
+  const [done, setDone] = React.useState(false);
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -74,13 +75,17 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await register(
+      const { emailVerified } = await register(
         email.trim(),
         password,
         fullName.trim(),
-        joinCode.trim().toUpperCase()
+        joinCode.trim().toUpperCase() || undefined
       );
-      router.push("/student");
+      if (!emailVerified) {
+        setDone(true);
+        return;
+      }
+      router.push(joinCode.trim() ? "/student" : "/teacher");
       router.refresh();
     } catch (err) {
       setError(authErrorMessage(err));
@@ -116,6 +121,19 @@ export default function RegisterPage() {
           </div>
         )}
 
+        {done && (
+          <div
+            role="alert"
+            className="mb-4 flex items-start gap-2 rounded-xl border border-success/20 bg-success-soft p-3 text-sm"
+          >
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
+            <span>
+              Account created. Check your inbox and click the confirmation
+              link, then sign in.
+            </span>
+          </div>
+        )}
+
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <Label htmlFor="joinCode">Group code</Label>
@@ -123,7 +141,6 @@ export default function RegisterPage() {
               <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
               <Input
                 id="joinCode"
-                required
                 placeholder="e.g. PW-7K2LM"
                 className="pl-9 uppercase tracking-widest"
                 value={joinCode}
