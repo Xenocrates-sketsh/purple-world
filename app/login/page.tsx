@@ -25,7 +25,7 @@ function LoginForm() {
   const next = searchParams.get("next") ?? "";
   const roleHint = searchParams.get("role");
 
-  const { login } = useAuth();
+  const { login, loginWithProvider } = useAuth();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
@@ -115,6 +115,25 @@ function LoginForm() {
             {loading ? "Signing in…" : "Sign in"}
           </Button>
         </form>
+
+        <div className="relative my-5">
+          <div className="absolute inset-0 flex items-center" aria-hidden>
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase tracking-wide text-muted-foreground">
+            <span className="bg-surface px-2">or</span>
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          size="lg"
+          onClick={() => loginWithProvider("google")}
+        >
+          Continue with Google
+        </Button>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           New student?{" "}

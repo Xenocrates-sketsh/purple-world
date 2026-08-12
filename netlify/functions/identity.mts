@@ -1,4 +1,7 @@
-import type { UserSignupEvent } from "@netlify/functions";
+import type {
+  UserLoginEvent,
+  UserSignupEvent,
+} from "@netlify/functions";
 import { db } from "../../db/index";
 import { profiles, students, groups } from "../../db/schema";
 import { eq, sql, type SQL, type SQLChunk } from "drizzle-orm";
@@ -44,15 +47,59 @@ function generateStudentNo(): string {
   return `STU-${out}`;
 }
 
+function teacherEmail(): string {
+  return (
+    Netlify.env.get("TEACHER_EMAIL") ||
+    process.env.TEACHER_EMAIL ||
+    ""
+  ).trim();
+}
+
+function isTeacherEmail(email: string): boolean {
+  const t = teacherEmail();
+  return t.length > 0 && email.toLowerCase() === t.toLowerCase();
+}
+
 export default {
+  async userLogin(event: UserLoginEvent) {
+    const user = event.user;
+    if (!user.email) return;
+
+    const isTeacher = isTeacherEmail(user.email);
+    const roles = Array.isArray(user.appMetadata?.roles)
+      ? (user.appMetadata?.roles as string[])
+      : [];
+
+    const profileRole = isTeacher ? "teacher" : "student";
+    await db
+      .update(profiles)
+      .set({ role: profileRole })
+      .where(eq(profiles.email, user.email));
+
+    if (isTeacher && !roles.includes("teacher")) {
+      return {
+        user: {
+          ...user,
+          appMetadata: { ...user.appMetadata, roles: ["teacher"] },
+        },
+      };
+    }
+
+    if (!isTeacher && !roles.includes("student")) {
+      return {
+        user: {
+          ...user,
+          appMetadata: { ...user.appMetadata, roles: ["student"] },
+        },
+      };
+    }
+  },
+
   async userSignup(event: UserSignupEvent) {
     const user = event.user;
     if (!user.email) return event.deny();
 
-    const teacherEmail = (Netlify.env.get("TEACHER_EMAIL") ?? "").trim();
-    const isTeacher =
-      teacherEmail.length > 0 &&
-      user.email.toLowerCase() === teacherEmail.toLowerCase();
+    const isTeacher = isTeacherEmail(user.email);
 
     const name = displayName(user);
     const joinCode =

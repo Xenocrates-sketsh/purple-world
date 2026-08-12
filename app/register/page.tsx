@@ -14,7 +14,7 @@ import { api, ApiError } from "@/lib/api";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register } = useAuth();
+  const { register, loginWithProvider } = useAuth();
 
   const [fullName, setFullName] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -224,6 +224,25 @@ export default function RegisterPage() {
             {loading ? "Creating your account…" : "Create account"}
           </Button>
         </form>
+
+        <div className="relative my-5">
+          <div className="absolute inset-0 flex items-center" aria-hidden>
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase tracking-wide text-muted-foreground">
+            <span className="bg-surface px-2">or</span>
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          size="lg"
+          onClick={() => loginWithProvider("google")}
+        >
+          Sign up with Google
+        </Button>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Already have an account?{" "}

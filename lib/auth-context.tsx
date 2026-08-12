@@ -7,6 +7,7 @@ import {
   login as identityLogin,
   logout as identityLogout,
   signup as identitySignup,
+  oauthLogin as identityOauthLogin,
   onAuthChange,
 } from "@netlify/identity";
 import { api } from "@/lib/api";
@@ -24,6 +25,7 @@ interface AuthContextValue {
   ) => Promise<{ emailVerified: boolean }>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
+  loginWithProvider: (provider: "google") => void;
 }
 
 const AuthContext = React.createContext<AuthContextValue | null>(null);
@@ -99,9 +101,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const loginWithProvider = React.useCallback((provider: "google") => {
+    identityOauthLogin(provider);
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, refresh }}
+      value={{ user, loading, login, register, logout, refresh, loginWithProvider }}
     >
       {children}
     </AuthContext.Provider>
