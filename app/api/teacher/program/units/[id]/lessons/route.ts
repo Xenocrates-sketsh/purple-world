@@ -3,8 +3,6 @@ import { requireAuth } from "@/lib/server-auth";
 import { q, assertExists } from "@/lib/queries";
 import { errorResponse } from "@/lib/http";
 
-const FIELDS = ["content", "grammar", "vocabulary", "reading", "writing", "listening"];
-
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }

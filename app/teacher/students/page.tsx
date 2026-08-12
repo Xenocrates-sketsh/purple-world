@@ -17,7 +17,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
-import { labelFor, STREAMS } from "@/lib/constants";
+import { STREAMS } from "@/lib/constants";
 import type { GroupSummary, StudentSummary } from "@/lib/types";
 
 export default function TeacherStudentsPage() {

@@ -8,7 +8,6 @@ import {
   logout as identityLogout,
   signup as identitySignup,
   onAuthChange,
-  type AuthError,
 } from "@netlify/identity";
 import { api } from "@/lib/api";
 import type { AuthUser } from "@/lib/types";

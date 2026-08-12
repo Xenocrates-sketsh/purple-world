@@ -27,7 +27,6 @@ import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
 import { formatDate, formatNumber, formatAmount } from "@/lib/format";
 import { ASSESSMENT_TYPES, ATTENDANCE_STATUS, labelFor } from "@/lib/constants";
-import type { GroupSummary } from "@/lib/types";
 
 interface Detail {
   id: string;
@@ -110,7 +109,6 @@ export default function TeacherStudentDetailPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [d, setD] = React.useState<Detail | null>(null);
-  const [groups, setGroups] = React.useState<GroupSummary[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [deactivating, setDeactivating] = React.useState(false);
@@ -129,10 +127,6 @@ export default function TeacherStudentDetailPage() {
   }, [params.id, toast]);
 
   React.useEffect(() => {
-    api
-      .get<GroupSummary[]>("/api/teacher/groups")
-      .then(setGroups)
-      .catch(() => setGroups([]));
     load();
   }, [load]);
 

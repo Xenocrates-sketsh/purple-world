@@ -14,7 +14,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
-import type { ProgramLessonRow, ProgramUnitRow } from "@/lib/types";
+import type { ProgramUnitRow } from "@/lib/types";
 
 type UnitForm = { title: string; description: string };
 type LessonForm = {

@@ -74,7 +74,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const { emailVerified } = await register(
+      await register(
         email.trim(),
         password,
         fullName.trim(),

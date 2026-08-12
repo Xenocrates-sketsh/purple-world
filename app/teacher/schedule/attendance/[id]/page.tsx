@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -31,7 +31,6 @@ const toneFor: Record<Status, string> = {
 
 export default function TeacherAttendancePage() {
   const params = useParams<{ id: string }>();
-  const router = useRouter();
   const { toast } = useToast();
   const [data, setData] = React.useState<AttendanceData | null>(null);
   const [loading, setLoading] = React.useState(true);

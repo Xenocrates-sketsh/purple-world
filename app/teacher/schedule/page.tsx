@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -10,7 +9,6 @@ import {
   StickyNote,
   ClipboardCheck,
   Trash2,
-  XCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/portal-shell";
 import { Card } from "@/components/ui/card";
@@ -32,8 +30,6 @@ import type { GroupSummary, LessonRow } from "@/lib/types";
 type Mode = "create" | "edit";
 
 export default function TeacherSchedulePage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
 
   const [lessons, setLessons] = React.useState<LessonRow[]>([]);

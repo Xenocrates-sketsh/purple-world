@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Megaphone, Plus, Trash2, Send } from "lucide-react";
 import { PageHeader } from "@/components/layout/portal-shell";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";

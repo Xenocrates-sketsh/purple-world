@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/server-auth";
 import { q, assertExists } from "@/lib/queries";
 import { errorResponse } from "@/lib/http";
-import { setAssignments } from "../route";
 
 const CATEGORIES = [
   "grammar",

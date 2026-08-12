@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/server-auth";
-import { q, qOne } from "@/lib/queries";
+import { q } from "@/lib/queries";
 import { errorResponse } from "@/lib/http";
 
 export async function POST(request: Request) {

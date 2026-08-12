@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { LogOut, Menu, MoreHorizontal, X, Home, Sparkles } from "lucide-react";
+import { LogOut, Menu, MoreHorizontal, X } from "lucide-react";
 import { Logo, LogoMark } from "@/components/brand";
 import { Avatar } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";

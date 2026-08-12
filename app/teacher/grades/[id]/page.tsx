@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -37,7 +37,6 @@ interface AssessmentDetail {
 
 export default function TeacherGradeEntryPage() {
   const params = useParams<{ id: string }>();
-  const router = useRouter();
   const { toast } = useToast();
   const [a, setA] = React.useState<AssessmentDetail | null>(null);
   const [loading, setLoading] = React.useState(true);

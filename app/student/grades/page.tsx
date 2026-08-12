@@ -4,7 +4,6 @@ import * as React from "react";
 import { ClipboardCheck, Award } from "lucide-react";
 import { PageHeader } from "@/components/layout/portal-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { api } from "@/lib/api";

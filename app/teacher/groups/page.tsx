@@ -56,7 +56,7 @@ export default function TeacherGroupsPage() {
     const data = Object.fromEntries(new FormData(e.currentTarget));
     setSaving(true);
     try {
-      const g = await api.post<GroupSummary>("/api/teacher/groups", { ...data, color });
+      await api.post<GroupSummary>("/api/teacher/groups", { ...data, color });
       setCreateOpen(false);
       toast({ kind: "success", title: "Group created" });
       load();

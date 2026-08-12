@@ -3,7 +3,7 @@ import { requireStudent } from "@/lib/portal-auth";
 import { q } from "@/lib/queries";
 import { errorResponse } from "@/lib/http";
 
-function getTeacherProfileId(authId: string) {
+function getTeacherProfileId() {
   return q<Record<string, unknown>>(
     `SELECT id FROM profiles WHERE role = 'teacher' LIMIT 1`,
     []
@@ -13,7 +13,7 @@ function getTeacherProfileId(authId: string) {
 export async function GET() {
   try {
     const { student } = await requireStudent();
-    const [teacher] = await getTeacherProfileId(student.profileId);
+    const [teacher] = await getTeacherProfileId();
     if (!teacher) throw new Error("Teacher not found.");
 
     const messages = await q<Record<string, unknown>>(
@@ -48,7 +48,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { student } = await requireStudent();
-    const [teacher] = await getTeacherProfileId(student.profileId);
+    const [teacher] = await getTeacherProfileId();
     if (!teacher) throw new Error("Teacher not found.");
 
     const body = await request.json().catch(() => ({}));
