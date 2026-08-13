@@ -21,7 +21,7 @@ export async function POST(
       `SELECT 1 FROM exercise_assignments ea
        WHERE ea.exercise_id = $1 AND (ea.student_id = $2 OR ea.group_id = $3)
        LIMIT 1`,
-      [params.exerciseId, student.id, student.groupId ?? ""]
+      [params.exerciseId, student.id, student.groupId]
     );
     const globalFallback = (
       await q(
@@ -51,6 +51,8 @@ export async function POST(
       exercise.deadline && new Date(String(exercise.deadline)) < new Date();
     const status = isLate ? "late" : "submitted";
 
+    const teacherId = await getTeacherProfileId().catch(() => null);
+
     const [submission] = await q<Record<string, unknown>>(
       `INSERT INTO exercise_submissions (exercise_id, student_id, content, attachment_url, status)
        VALUES ($1, $2, NULLIF($3, ''), NULLIF($4, ''), $5)
@@ -58,13 +60,15 @@ export async function POST(
       [params.exerciseId, student.id, content, attachmentUrl, status]
     );
 
-    notify(
-      await getTeacherProfileId(),
-      "new_grade",
-      "Exercise submitted",
-      `${student.studentNo} submitted "${String(exercise.title)}"`,
-      "/teacher/exercises"
-    );
+    if (teacherId) {
+      await notify(
+        teacherId,
+        "new_grade",
+        "Exercise submitted",
+        `${student.studentNo} submitted "${String(exercise.title)}"`,
+        "/teacher/exercises"
+      );
+    }
 
     return NextResponse.json(
       {

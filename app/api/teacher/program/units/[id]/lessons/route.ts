@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/server-auth";
-import { q, assertExists } from "@/lib/queries";
+import { q, qOne, assertExists } from "@/lib/queries";
 import { errorResponse } from "@/lib/http";
 
 export async function POST(
@@ -10,7 +10,7 @@ export async function POST(
   try {
     await requireAuth("teacher");
     assertExists(
-      await q<Record<string, unknown>>(`SELECT id FROM program_units WHERE id = $1`, [params.id]),
+      await qOne<Record<string, unknown>>(`SELECT id FROM program_units WHERE id = $1`, [params.id]),
       "Unit"
     );
     const body = await request.json().catch(() => ({}));

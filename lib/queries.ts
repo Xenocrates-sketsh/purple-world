@@ -17,7 +17,7 @@ async function execRows(query: SQL): Promise<Row[]> {
   return res as unknown as Row[];
 }
 
-function bindParams(query: string, params: unknown[] = []): SQL {
+export function bindParams(query: string, params: unknown[] = []): SQL {
   if (params.length === 0) return sql.raw(query);
   const chunks: SQLChunk[] = [];
   const re = /\$(\d+)/g;

@@ -86,9 +86,20 @@ export default function TeacherExercisesPage() {
     setOpen(true);
   };
 
-  const openEdit = (e: ExerciseRow) => {
+  const openEdit = async (e: ExerciseRow) => {
     setMode("edit");
     setEditId(e.id);
+    let groupIds: string[] = [];
+    let studentIds: string[] = [];
+    try {
+      const detail = await api.get<{
+        assignments?: { groupIds?: string[]; studentIds?: string[] };
+      }>(`/api/teacher/exercises/${e.id}`);
+      groupIds = detail.assignments?.groupIds ?? [];
+      studentIds = detail.assignments?.studentIds ?? [];
+    } catch {
+      /* keep defaults on fetch failure */
+    }
     setForm({
       title: e.title,
       description: e.description ?? "",
@@ -97,8 +108,8 @@ export default function TeacherExercisesPage() {
       difficulty: e.difficulty,
       deadline: e.deadline ? e.deadline.slice(0, 16) : "",
       attachmentUrl: e.attachmentUrl ?? "",
-      groupIds: [],
-      studentIds: [],
+      groupIds,
+      studentIds,
     });
     setOpen(true);
   };

@@ -14,7 +14,7 @@ export async function GET() {
           OR (a.target = 'group' AND a.group_id = $1)
           OR (a.target = 'student' AND a.student_id = $2)
        ORDER BY a.created_at DESC LIMIT 100`,
-      [student.groupId ?? "", student.id]
+      [student.groupId, student.id]
     );
     return NextResponse.json(
       rows.map((r) => ({

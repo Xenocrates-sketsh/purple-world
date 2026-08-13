@@ -45,7 +45,7 @@ export async function GET(request: Request) {
         student: {
           id: String(r.student_id),
           fullName: String(r.full_name),
-          email: String(r.email),
+          email: (r.email as string) ?? "",
           studentNo: String(r.student_no),
           active: Boolean(r.student_active),
         },

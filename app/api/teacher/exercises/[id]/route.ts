@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/server-auth";
-import { q, assertExists } from "@/lib/queries";
+import { q, qOne, assertExists } from "@/lib/queries";
 import { errorResponse } from "@/lib/http";
 
 const CATEGORIES = [
@@ -94,7 +94,7 @@ export async function PATCH(
   try {
     await requireAuth("teacher");
     assertExists(
-      await q<Record<string, unknown>>(`SELECT id FROM exercises WHERE id = $1`, [params.id]),
+      await qOne<Record<string, unknown>>(`SELECT id FROM exercises WHERE id = $1`, [params.id]),
       "Exercise"
     );
     const body = await request.json().catch(() => ({}));
@@ -136,7 +136,7 @@ export async function DELETE(
   try {
     await requireAuth("teacher");
     assertExists(
-      await q<Record<string, unknown>>(`SELECT id FROM exercises WHERE id = $1`, [params.id]),
+      await qOne<Record<string, unknown>>(`SELECT id FROM exercises WHERE id = $1`, [params.id]),
       "Exercise"
     );
     await q(`DELETE FROM exercises WHERE id = $1`, [params.id]);

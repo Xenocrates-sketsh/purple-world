@@ -3,8 +3,6 @@ import { requireAuth } from "@/lib/server-auth";
 import { q } from "@/lib/queries";
 import { errorResponse } from "@/lib/http";
 import { notify } from "@/lib/notify";
-import { sql } from "drizzle-orm";
-import { db } from "@/db";
 
 const CATEGORIES = [
   "new_lesson",
@@ -98,11 +96,9 @@ async function notifyTargets(
 ) {
   const type = "new_announcement" as const;
   if (target === "all") {
-    const profiles = (await db.execute(
-      sql.raw(
-        `SELECT s.profile_id FROM students s JOIN profiles p ON p.id = s.profile_id WHERE s.active = true`
-      )
-    )) as unknown as { profile_id: string }[];
+    const profiles = await q<{ profile_id: string }>(
+      `SELECT s.profile_id FROM students s JOIN profiles p ON p.id = s.profile_id WHERE s.active = true`
+    );
     for (const p of profiles)
       await notify(p.profile_id, type, `New announcement: ${title}`, content, "/student/announcements");
   } else if (target === "group" && groupId) {

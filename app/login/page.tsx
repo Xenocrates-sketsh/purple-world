@@ -22,8 +22,10 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "";
+  const rawNext = searchParams.get("next") ?? "";
   const roleHint = searchParams.get("role");
+  const next =
+    rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "";
 
   const { login, loginWithProvider } = useAuth();
   const [email, setEmail] = React.useState("");

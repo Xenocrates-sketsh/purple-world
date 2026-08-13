@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
+import { requireAuth, HttpError } from "@/lib/server-auth";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { errorResponse } from "@/lib/http";
 
 export async function GET() {
@@ -43,11 +43,13 @@ export async function PATCH(request: Request) {
           sql`${notifications.id} = ${body.id} AND ${notifications.profileId} = ${auth.id}`
         )
         .limit(1);
-      if (!row) throw new Error("Not found");
+      if (!row) throw new HttpError(404, "Notification not found.");
       await db
         .update(notifications)
         .set({ isRead: true })
-        .where(eq(notifications.id, body.id));
+        .where(
+          and(eq(notifications.id, body.id), eq(notifications.profileId, auth.id))
+        );
     } else {
       await db
         .update(notifications)

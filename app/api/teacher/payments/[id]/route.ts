@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/server-auth";
-import { q, assertExists } from "@/lib/queries";
+import { q, qOne, assertExists } from "@/lib/queries";
 import { errorResponse } from "@/lib/http";
 
 export async function PATCH(
@@ -43,7 +43,7 @@ export async function DELETE(
   try {
     await requireAuth("teacher");
     assertExists(
-      await q<Record<string, unknown>>(`SELECT id FROM payments WHERE id = $1`, [params.id]),
+      await qOne<Record<string, unknown>>(`SELECT id FROM payments WHERE id = $1`, [params.id]),
       "Payment"
     );
     await q(`DELETE FROM payments WHERE id = $1`, [params.id]);

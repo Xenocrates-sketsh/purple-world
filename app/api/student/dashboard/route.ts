@@ -27,14 +27,14 @@ export async function GET() {
        FROM lessons l JOIN groups g ON g.id = l.group_id
        WHERE l.group_id = $1 AND l.starts_at > now()
        ORDER BY l.starts_at ASC LIMIT 1`,
-      [groupId ?? ""]
+      [groupId]
     );
 
     const announcements = await q<Row>(
       `SELECT * FROM announcements
        WHERE (target = 'all') OR (target = 'group' AND group_id = $1) OR (target = 'student' AND student_id = $2)
        ORDER BY created_at DESC LIMIT 5`,
-      [groupId ?? "", sid]
+      [groupId, sid]
     );
 
     const latestGrades = await q<Row>(
@@ -53,7 +53,7 @@ export async function GET() {
          OR EXISTS (SELECT 1 FROM exercise_assignments ea
                      WHERE ea.exercise_id = e.id AND (ea.student_id = $1 OR ea.group_id = $2))
        )`,
-      [sid, groupId ?? ""]
+      [sid, groupId]
     );
 
     const [unread] = await q<Row>(

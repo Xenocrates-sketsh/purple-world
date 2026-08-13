@@ -3,8 +3,6 @@ import { requireAuth } from "@/lib/server-auth";
 import { q, assertExists, setAssignments } from "@/lib/queries";
 import { errorResponse } from "@/lib/http";
 import { notify } from "@/lib/notify";
-import { sql } from "drizzle-orm";
-import { db } from "@/db";
 
 export async function PUT(
   request: Request,
@@ -46,12 +44,10 @@ export async function PUT(
     }
     // Notify all members of targeted groups.
     if (groupIds.length > 0) {
-      const ids = groupIds.map((g: unknown) => `'${String(g)}'`).join(",");
-      const members = (await db.execute(
-        sql.raw(
-          `SELECT s.profile_id FROM students s WHERE s.group_id IN (${ids}) AND s.active = true`
-        )
-      )) as unknown as { profile_id: string }[];
+      const members = await q<{ profile_id: string }>(
+        `SELECT s.profile_id FROM students s WHERE s.group_id = ANY($1::uuid[]) AND s.active = true`,
+        [groupIds]
+      );
       for (const m of members) {
         await notify(
           String(m.profile_id),

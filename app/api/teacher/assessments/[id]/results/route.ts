@@ -29,12 +29,8 @@ export async function PUT(
       const score = String(rec.score ?? "");
       if (!studentId || score === "") continue;
       const parsed = Number(score);
-      if (!Number.isFinite(parsed) || parsed < 0 || parsed > maxScore * 2) {
-        if (maxScore > 0 && parsed > maxScore) {
-          // Allow full marks only; reject impossible scores.
-          throw new Error(`Score must be between 0 and ${maxScore}.`);
-        }
-        throw new Error("Enter a valid score.");
+      if (!Number.isFinite(parsed) || parsed < 0 || parsed > maxScore) {
+        throw new Error(`Score must be between 0 and ${maxScore}.`);
       }
       const [student] = await q<Record<string, unknown>>(
         `SELECT profile_id FROM students WHERE id = $1`,

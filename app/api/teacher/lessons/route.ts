@@ -27,10 +27,12 @@ export async function GET(request: Request) {
     let where = "";
     const params: unknown[] = [];
     if (from) {
+      if (Number.isNaN(Date.parse(from))) throw new Error("Invalid from date.");
       params.push(from);
       where += `${where ? " AND " : "WHERE "}l.starts_at >= $${params.length}::date`;
     }
     if (to) {
+      if (Number.isNaN(Date.parse(to))) throw new Error("Invalid to date.");
       params.push(to);
       where += `${where ? " AND " : "WHERE "}l.starts_at < ($${params.length}::date + interval '1 day')`;
     }
@@ -59,9 +61,12 @@ export async function POST(request: Request) {
     const groupId = String(body.groupId ?? "");
     const title = String(body.title ?? "").trim() || "English lesson";
     const startsAt = String(body.startsAt ?? "");
-    const durationMin = Number(body.durationMin ?? 60);
+    const durationMin = Number.isFinite(Number(body.durationMin))
+      ? Number(body.durationMin)
+      : 60;
     if (!groupId) throw new Error("Select a group.");
     if (!startsAt) throw new Error("Pick a date and time.");
+    if (Number.isNaN(Date.parse(startsAt))) throw new Error("Invalid date and time.");
 
     const [lesson] = await q<Record<string, unknown>>(
       `INSERT INTO lessons (group_id, title, starts_at, duration_min, location, notes)

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/server-auth";
-import { q, assertExists } from "@/lib/queries";
+import { q, assertExists, bindParams } from "@/lib/queries";
+import { db } from "@/db";
 import { errorResponse } from "@/lib/http";
 
 export async function GET(
@@ -85,14 +86,18 @@ export async function PUT(
     }
 
     // Reset existing attendance for this lesson, then write fresh records.
-    await q(`DELETE FROM attendance WHERE lesson_id = $1`, [params.id]);
-    for (const rec of records) {
-      await q(
-        `INSERT INTO attendance (lesson_id, student_id, status, marked_at)
-         VALUES ($1, $2, $3, now())`,
-        [params.id, String(rec.studentId), String(rec.status)]
-      );
-    }
+    await db.transaction(async (tx) => {
+      await tx.execute(bindParams(`DELETE FROM attendance WHERE lesson_id = $1`, [params.id]));
+      for (const rec of records) {
+        await tx.execute(
+          bindParams(
+            `INSERT INTO attendance (lesson_id, student_id, status, marked_at)
+             VALUES ($1, $2, $3, now())`,
+            [params.id, String(rec.studentId), String(rec.status)]
+          )
+        );
+      }
+    });
 
     return NextResponse.json({ ok: true, marked: studentIds.length });
   } catch (e) {

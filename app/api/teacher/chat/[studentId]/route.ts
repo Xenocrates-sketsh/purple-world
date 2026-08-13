@@ -82,7 +82,7 @@ export async function POST(
     await notify(
       String(student.profile_id),
       "message",
-      "New message from Hafsa",
+      `New message from ${auth.fullName}`,
       content.length > 90 ? content.slice(0, 90) + "…" : content,
       "/student/chat"
     );

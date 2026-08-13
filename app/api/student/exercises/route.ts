@@ -39,7 +39,7 @@ export async function GET() {
                      WHERE ea.exercise_id = e.id AND (ea.student_id = $1 OR ea.group_id = $2))
        )
        ORDER BY e.created_at DESC LIMIT 200`,
-      [student.id, student.groupId ?? ""]
+      [student.id, student.groupId]
     );
 
     const mapped: ExerciseRow[] = rows.map((r) => ({
