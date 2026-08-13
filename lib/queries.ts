@@ -4,6 +4,19 @@ import { HttpError } from "@/lib/server-auth";
 
 type Row = Record<string, unknown>;
 
+async function execRows(query: SQL): Promise<Row[]> {
+  const res = (await db.execute(query)) as
+    | { rows?: Row[] }
+    | Row[]
+    | null;
+  if (!res) return [];
+  if (Array.isArray(res)) return res;
+  if (Array.isArray((res as { rows?: Row[] }).rows)) {
+    return (res as { rows: Row[] }).rows;
+  }
+  return res as unknown as Row[];
+}
+
 function bindParams(query: string, params: unknown[] = []): SQL {
   if (params.length === 0) return sql.raw(query);
   const chunks: SQLChunk[] = [];
@@ -89,7 +102,7 @@ export async function listStudents(opts: {
 
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
-  const rows = await db.execute(
+  const rows = await execRows(
     bindParams(
       `SELECT s.*, p.full_name, p.email, p.avatar_url,
          g.name AS group_name, g.color AS group_color,
@@ -117,7 +130,7 @@ export async function listStudents(opts: {
 }
 
 export async function getGroupList() {
-  const rows = await db.execute(
+  const rows = await execRows(
     sql.raw(
       `SELECT g.*,
          (SELECT COUNT(*)::int FROM students s WHERE s.group_id = g.id) AS member_count
@@ -136,7 +149,7 @@ export async function getGroupList() {
 }
 
 export async function getStudentById(id: string): Promise<Row | null> {
-  const [row] = (await db.execute(
+  const [row] = await execRows(
     bindParams(
       `SELECT s.*, p.full_name, p.email, p.avatar_url,
          g.name AS group_name, g.color AS group_color, g.invite_code AS group_invite,
@@ -149,12 +162,12 @@ export async function getStudentById(id: string): Promise<Row | null> {
        WHERE s.id = $1`,
       [id]
     )
-  )) as unknown as Row[];
+  );
   return row ?? null;
 }
 
 export async function getStudentStats(id: string) {
-  const [attendanceRows] = (await db.execute(
+  const [attendanceRows] = await execRows(
     bindParams(
       `SELECT COUNT(*)::int AS total,
          COUNT(*) FILTER (WHERE status = 'present')::int AS present,
@@ -164,9 +177,9 @@ export async function getStudentStats(id: string) {
        FROM attendance WHERE student_id = $1`,
       [id]
     )
-  )) as unknown as Row[];
+  );
 
-  const attendanceRecent = (await db.execute(
+  const attendanceRecent = await execRows(
     bindParams(
       `SELECT att.status, att.marked_at, l.title AS lesson, l.starts_at
        FROM attendance att
@@ -175,16 +188,16 @@ export async function getStudentStats(id: string) {
        ORDER BY l.starts_at DESC LIMIT 10`,
       [id]
     )
-  )) as unknown as Row[];
+  );
 
-  const payments = (await db.execute(
+  const payments = await execRows(
     bindParams(
       `SELECT * FROM payments WHERE student_id = $1 ORDER BY due_date DESC`,
       [id]
     )
-  )) as unknown as Row[];
+  );
 
-  const grades = (await db.execute(
+  const grades = await execRows(
     bindParams(
       `SELECT r.*, a.title, a.type, a.date, a.max_score
        FROM results r
@@ -193,9 +206,9 @@ export async function getStudentStats(id: string) {
        ORDER BY a.date DESC`,
       [id]
     )
-  )) as unknown as Row[];
+  );
 
-  const exerciseRows = (await db.execute(
+  const exerciseRows = await execRows(
     bindParams(
       `SELECT e.id, e.title, e.category, e.difficulty, e.deadline, e.archived,
          sub.id AS submission_id, sub.status AS submission_status, sub.grade, sub.submitted_at
@@ -210,7 +223,7 @@ export async function getStudentStats(id: string) {
        ORDER BY e.created_at DESC`,
       [id]
     )
-  )) as unknown as Row[];
+  );
 
   return {
     attendance: {
@@ -282,7 +295,7 @@ export async function q<T = Row>(
   query: string,
   params: unknown[] = []
 ): Promise<T[]> {
-  return (await db.execute(bindParams(query, params))) as unknown as T[];
+  return (await execRows(bindParams(query, params))) as unknown as T[];
 }
 
 export async function qOne<T = Row>(

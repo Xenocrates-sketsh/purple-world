@@ -26,7 +26,16 @@ async function run<T = Row>(query: string, params: unknown[] = []): Promise<T[]>
     if (last < query.length) chunks.push(sql.raw(query.slice(last)));
     sqlQuery = sql.join(chunks);
   }
-  return (await db.execute(sqlQuery)) as unknown as T[];
+  const res = (await db.execute(sqlQuery)) as
+    | { rows?: unknown[] }
+    | unknown[]
+    | null;
+  if (!res) return [];
+  if (Array.isArray(res)) return res as unknown as T[];
+  if (Array.isArray((res as { rows?: unknown[] }).rows)) {
+    return (res as { rows: unknown[] }).rows as unknown as T[];
+  }
+  return res as unknown as T[];
 }
 
 function displayName(user: UserSignupEvent["user"]): string {
