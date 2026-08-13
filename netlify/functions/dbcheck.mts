@@ -19,13 +19,27 @@ export default async () => {
     report.dbError = e instanceof Error ? e.message : String(e);
   }
   try {
-    const raw = await db.execute({
-      raw: { query: "SELECT 1 AS ok" },
-      chunks: [{ type: "raw", query: "SELECT 1 AS ok", params: [] }],
-    } as never);
-    report.select1 = JSON.stringify(raw);
+    const { sql } = await import("drizzle-orm");
+    const rawRes = await db.execute(sql.raw("SELECT 1 AS ok"));
+    report.selectRaw = JSON.stringify(rawRes);
   } catch (e) {
-    report.select1Error = e instanceof Error ? e.message : String(e);
+    report.selectRawError = e instanceof Error ? e.message : String(e);
+  }
+
+  try {
+    const { sql } = await import("drizzle-orm");
+    const { eq } = await import("drizzle-orm");
+    const joinRes = await db.execute(
+      sql.join([
+        sql.raw("SELECT 1 AS a "),
+        sql.raw("WHERE "),
+        sql.param(1 as never),
+        sql.raw(" = 1"),
+      ])
+    );
+    report.selectJoin = JSON.stringify(joinRes);
+  } catch (e) {
+    report.selectJoinError = e instanceof Error ? e.message : String(e);
   }
 
   try {
