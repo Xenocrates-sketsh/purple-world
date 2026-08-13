@@ -59,7 +59,6 @@ export async function GET() {
   try {
     const { db } = await import("@/db");
     const { profiles } = await import("@/db/schema");
-    const { eq } = await import("drizzle-orm");
     const rows = await db.select().from(profiles).limit(1);
     report.drizzleSelect = { ok: rows.length };
   } catch (e) {
