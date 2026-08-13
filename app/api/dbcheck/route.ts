@@ -65,6 +65,34 @@ export async function GET() {
     report.drizzleSelectError = e instanceof Error ? e.message : String(e);
   }
 
+  try {
+    const { q } = await import("@/lib/queries");
+    const q1 = await q(
+      `SELECT
+         (SELECT COUNT(*)::int FROM students) AS students,
+         (SELECT COUNT(*)::int FROM students WHERE active = true) AS active,
+         (SELECT COUNT(DISTINCT s.id)::int FROM students s
+            WHERE s.active = true AND EXISTS (
+              SELECT 1 FROM payments pay
+              WHERE pay.student_id = s.id AND pay.paid_date IS NULL AND pay.status IN ('due','overdue'))) AS unpaid,
+         (SELECT COUNT(DISTINCT s.id)::int FROM students s
+            WHERE s.active = true AND EXISTS (
+              SELECT 1 FROM payments pay
+              WHERE pay.student_id = s.id AND pay.paid_date IS NULL AND pay.status = 'overdue')) AS overdue`
+    );
+    report.dashTotals = JSON.stringify(q1);
+  } catch (e) {
+    report.dashTotalsError = e instanceof Error ? e.message : String(e);
+  }
+
+  try {
+    const { listStudents } = await import("@/lib/queries");
+    const students = await listStudents({});
+    report.listStudents = { count: students.length };
+  } catch (e) {
+    report.listStudentsError = e instanceof Error ? e.message : String(e);
+  }
+
   return NextResponse.json(report);
 }
 
