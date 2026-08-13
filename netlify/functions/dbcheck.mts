@@ -27,6 +27,21 @@ export default async () => {
   } catch (e) {
     report.select1Error = e instanceof Error ? e.message : String(e);
   }
+
+  try {
+    const { sql } = await import("drizzle-orm");
+    const t = await db.execute(sql`SELECT 1 AS ok`);
+    report.select1Sql = JSON.stringify(t);
+  } catch (e) {
+    report.select1SqlError = e instanceof Error ? e.message : String(e);
+  }
+
+  try {
+    const str = await db.execute("SELECT 1 AS ok" as never);
+    report.select1String = JSON.stringify(str);
+  } catch (e) {
+    report.select1StringError = e instanceof Error ? e.message : String(e);
+  }
   return Response.json(report);
 };
 
