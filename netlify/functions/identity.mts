@@ -69,12 +69,47 @@ export default {
     const roles = Array.isArray(user.appMetadata?.roles)
       ? (user.appMetadata?.roles as string[])
       : [];
-
     const profileRole = isTeacher ? "teacher" : "student";
+
+    const name =
+      (user.userMetadata?.full_name as string) ||
+      (user.userMetadata?.name as string) ||
+      user.email ||
+      "User";
+
+    // Self-heal the profile row so a user who signed up before this hook
+    // existed (or whose hook write failed) still has a working profile.
     await db
-      .update(profiles)
-      .set({ role: profileRole })
-      .where(eq(profiles.email, user.email));
+      .insert(profiles)
+      .values({
+        id: user.id,
+        fullName: name,
+        email: user.email,
+        avatarUrl: (user.userMetadata?.avatar_url as string) || null,
+        role: profileRole,
+      })
+      .onConflictDoUpdate({
+        target: profiles.id,
+        set: { role: profileRole, fullName: name, email: user.email },
+      });
+
+    // Ensure a student row exists so the student portal never 403s on a
+    // missing profile. The group link is left for the teacher to assign.
+    if (!isTeacher) {
+      const [existing] = await run<Record<string, unknown>>(
+        `SELECT id FROM students WHERE profile_id = $1 LIMIT 1`,
+        [user.id]
+      );
+      if (!existing) {
+        await db
+          .insert(students)
+          .values({
+            profileId: user.id,
+            studentNo: generateStudentNo(),
+          })
+          .onConflictDoNothing();
+      }
+    }
 
     if (isTeacher && !roles.includes("teacher")) {
       return {
