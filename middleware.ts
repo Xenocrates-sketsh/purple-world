@@ -50,7 +50,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (isAuthed && PUBLIC_PATHS.includes(pathname)) {
+  /*
+   * Logged-in users who open the registration form are sent to their
+   * portal (they're already signed up). The welcome page and login page
+   * stay reachable for everyone so a signed-in user can pick a role and
+   * switch accounts instead of being trapped in their portal.
+   */
+  if (isAuthed && pathname === "/register") {
     const url = request.nextUrl.clone();
     url.pathname = role === "teacher" ? "/teacher" : "/student";
     return NextResponse.redirect(url);
