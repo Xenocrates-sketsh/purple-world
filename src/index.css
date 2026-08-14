@@ -1,0 +1,250 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Purple World design tokens.
+  HSL triplets referenced by tailwind.config.ts.
+  Light (default) + Dark (`.dark` on <html>) modes.
+*/
+:root {
+  --background: 264 45% 99%;
+  --foreground: 262 35% 12%;
+
+  --muted: 262 25% 94%;
+  --muted-foreground: 262 15% 45%;
+
+  --surface: 0 0% 100%;
+  --surface-muted: 262 32% 97%;
+  --surface-elevated: 0 0% 100%;
+
+  --border: 262 22% 90%;
+  --input: 262 22% 88%;
+  --ring: 262 84% 48%;
+
+  --primary: 262 84% 48%;
+  --primary-foreground: 0 0% 100%;
+  --primary-soft: 262 70% 96%;
+  --primary-muted: 262 48% 91%;
+
+  --accent: 280 65% 55%;
+  --accent-foreground: 0 0% 100%;
+
+  --success: 158 64% 40%;
+  --success-soft: 158 60% 94%;
+  --warning: 38 92% 44%;
+  --warning-soft: 40 90% 94%;
+  --danger: 0 72% 46%;
+  --danger-soft: 0 80% 95%;
+  --info: 221 80% 50%;
+  --info-soft: 220 90% 95%;
+
+  --shadow-sm: 0 1px 2px rgb(60 30 110 / 0.05);
+  --shadow: 0 1px 3px rgb(60 30 110 / 0.06), 0 4px 14px rgb(60 30 110 / 0.05);
+  --shadow-lg: 0 4px 10px rgb(60 30 110 / 0.08), 0 12px 34px rgb(60 30 110 / 0.1);
+}
+
+.dark {
+  --background: 260 32% 6%;
+  --foreground: 262 30% 93%;
+
+  --muted: 260 22% 14%;
+  --muted-foreground: 262 18% 65%;
+
+  --surface: 260 26% 10%;
+  --surface-muted: 260 24% 8%;
+  --surface-elevated: 262 28% 13%;
+
+  --border: 260 20% 20%;
+  --input: 260 20% 24%;
+  --ring: 262 72% 62%;
+
+  --primary: 262 72% 62%;
+  --primary-foreground: 262 45% 10%;
+  --primary-soft: 262 45% 18%;
+  --primary-muted: 262 38% 14%;
+
+  --accent: 280 68% 66%;
+  --accent-foreground: 280 45% 8%;
+
+  --success: 158 60% 56%;
+  --success-soft: 158 40% 16%;
+  --warning: 40 90% 58%;
+  --warning-soft: 40 45% 16%;
+  --danger: 0 70% 60%;
+  --danger-soft: 0 45% 16%;
+  --info: 221 75% 64%;
+  --info-soft: 220 45% 16%;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow: 0 1px 3px rgb(0 0 0 / 0.35), 0 4px 14px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 4px 10px rgb(0 0 0 / 0.4), 0 12px 34px rgb(0 0 0 / 0.45);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+      Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-border bg-surface shadow-sm;
+  }
+
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow hover:border-primary/30;
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border border-input bg-surface px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-ring/40 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98];
+  }
+
+  .btn-primary {
+    @apply btn bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm;
+  }
+
+  .btn-secondary {
+    @apply btn bg-surface border border-border text-foreground hover:bg-surface-muted;
+  }
+
+  .btn-ghost {
+    @apply btn text-foreground hover:bg-surface-muted;
+  }
+
+  .btn-danger {
+    @apply btn bg-danger text-white hover:bg-danger/90 shadow-sm;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  .label-field {
+    @apply mb-1.5 block text-xs font-medium text-foreground;
+  }
+
+  .skeleton {
+    @apply animate-pulse rounded-lg bg-primary-muted/70;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background-color: hsl(var(--border));
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+  }
+}
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+/* Modal + toast + page transitions */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out both;
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.25s ease-out both;
+}
+.animate-zoom-in {
+  animation: zoom-in 0.18s ease-out both;
+}
+.animate-toast-in {
+  animation: toast-in 0.2s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

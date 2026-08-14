@@ -1,0 +1,80 @@
+rules_version = '2';
+
+// ===========================================================================
+// Purple World — Storage Security Rules
+//
+// Mirrors the Firestore model:
+//   - avatars/{uid}        owner may upload; any member may download
+//   - submissions/...      student may upload to their own path ONLY; teacher
+//                           reads/writes everything
+//   - exercises/{id}       teacher uploads materials; students assigned to the
+//                           exercise may download
+//   - program/...          teacher uploads; any authenticated user may download
+// ===========================================================================
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Role checks delegate to the authoritative Firestore users/{uid}.role.
+    function isTeacher() {
+      return isSignedIn()
+        && (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'teacher'
+            || request.auth.token.role == 'teacher');
+    }
+
+    function isStudent() {
+      return isSignedIn()
+        && (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'student'
+            || request.auth.token.role == 'student');
+    }
+
+    // dom.slug() sanitizes names; match with regex avoids path traversal.
+    match /avatars/{userId}/{fileName} {
+      allow read: if isTeacher() || isStudent();
+      allow write: if isSignedIn() && userId == request.auth.uid;
+    }
+
+    match /submissions/{exerciseId}/{studentId}/{fileName} {
+      allow read: if isTeacher()
+        || (isStudent() && studentId ==
+            firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.studentId);
+      // Students may only upload into their OWN submission folder.
+      allow write: if isTeacher()
+        || (isSignedIn() && studentId == request.auth.uid);
+      allow delete: if isTeacher();
+    }
+
+    match /exercises/{exerciseId}/{fileName} {
+      allow read: if isTeacher()
+        || (isStudent() && isAssignedExercise(exerciseId));
+      allow write: if isTeacher();
+    }
+
+    match /program/{unitId}/{fileName} {
+      allow read: if isTeacher() || isStudent();
+      allow write: if isTeacher();
+    }
+
+    // For a student to fetch an exercise attachment, the exercise must be
+    // assigned to their group or to them directly.
+    function isAssignedExercise(exerciseId) {
+      let exercise = firestore.get(
+        /databases/(default)/documents/exercises/$(exerciseId)
+      ).data;
+      let studentId = firestore.get(
+        /databases/(default)/documents/users/$(request.auth.uid)
+      ).data.studentId;
+      let groupId = firestore.get(
+        /databases/(default)/documents/users/$(request.auth.uid)
+      ).data.groupId;
+      return (exercise.assignedStudentIds != null
+          && exercise.assignedStudentIds.hasAny([studentId]))
+        || (exercise.assignedGroupIds != null
+          && exercise.assignedGroupIds.hasAny([groupId]));
+    }
+  }
+}

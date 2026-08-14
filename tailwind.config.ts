@@ -1,99 +1,106 @@
 import type { Config } from "tailwindcss";
 
-const config: Config = {
-  content: [
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./lib/**/*.{js,ts,jsx,tsx,mdx}",
-  ],
+const hsl = (v: string) => `hsl(var(--${v}) / <alpha-value>)`;
+
+export default {
   darkMode: "class",
+  content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        background: hsl("background"),
+        foreground: hsl("foreground"),
         surface: {
-          DEFAULT: "hsl(var(--surface))",
-          muted: "hsl(var(--surface-muted))",
-          elevated: "hsl(var(--surface-elevated))",
+          DEFAULT: hsl("surface"),
+          muted: hsl("surface-muted"),
+          elevated: hsl("surface-elevated"),
         },
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
+        border: hsl("border"),
+        input: hsl("input"),
+        ring: hsl("ring"),
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: hsl("muted"),
+          foreground: hsl("muted-foreground"),
         },
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-          soft: "hsl(var(--primary-soft))",
-          muted: "hsl(var(--primary-muted))",
+          DEFAULT: hsl("primary"),
+          foreground: hsl("primary-foreground"),
+          soft: hsl("primary-soft"),
+          muted: hsl("primary-muted"),
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: hsl("accent"),
+          foreground: hsl("accent-foreground"),
         },
         success: {
-          DEFAULT: "hsl(var(--success))",
-          soft: "hsl(var(--success-soft))",
+          DEFAULT: hsl("success"),
+          soft: hsl("success-soft"),
         },
         warning: {
-          DEFAULT: "hsl(var(--warning))",
-          soft: "hsl(var(--warning-soft))",
+          DEFAULT: hsl("warning"),
+          soft: hsl("warning-soft"),
         },
         danger: {
-          DEFAULT: "hsl(var(--danger))",
-          soft: "hsl(var(--danger-soft))",
+          DEFAULT: hsl("danger"),
+          soft: hsl("danger-soft"),
         },
         info: {
-          DEFAULT: "hsl(var(--info))",
-          soft: "hsl(var(--info-soft))",
+          DEFAULT: hsl("info"),
+          soft: hsl("info-soft"),
         },
         purple: {
-          50: "#f6f4fe",
-          100: "#ede8fd",
-          200: "#dbd1fb",
-          300: "#bfabf7",
-          400: "#a17df0",
-          500: "#8554e8",
-          600: "#7c3aed",
-          700: "#6828cf",
-          800: "#5722ab",
-          900: "#481e8a",
-          950: "#2c0f5c",
+          50: "#faf5ff",
+          100: "#f3e8ff",
+          200: "#e9d5ff",
+          300: "#d8b4fe",
+          400: "#c084fc",
+          500: "#a855f7",
+          600: "#9333ea",
+          700: "#7e22ce",
+          800: "#6b21a8",
+          900: "#581c87",
+          950: "#3b0764",
         },
       },
       borderRadius: {
-        xl: "calc(var(--radius) + 4px)",
-        "2xl": "calc(var(--radius) + 8px)",
+        xl: "0.85rem",
+        "2xl": "1.1rem",
       },
       boxShadow: {
-        card: "0 1px 2px rgba(30, 20, 50, 0.04), 0 4px 16px rgba(30, 20, 50, 0.05)",
-        elevated:
-          "0 2px 4px rgba(30, 20, 50, 0.06), 0 12px 32px rgba(30, 20, 50, 0.10)",
-        pop: "0 8px 40px rgba(30, 20, 50, 0.18)",
+        sm: "var(--shadow-sm)",
+        DEFAULT: "var(--shadow)",
+        lg: "var(--shadow-lg)",
       },
       keyframes: {
+        shimmer: {
+          "0%": { backgroundPosition: "-400px 0" },
+          "100%": { backgroundPosition: "400px 0" },
+        },
         "fade-in": {
-          from: { opacity: "0", transform: "translateY(4px)" },
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "fade-in-up": {
+          from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
-        "scale-in": {
+        "zoom-in": {
           from: { opacity: "0", transform: "scale(0.96)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
-        shimmer: {
-          "100%": { transform: "translateX(100%)" },
+        "toast-in": {
+          from: { opacity: "0", transform: "translateY(12px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
         },
       },
       animation: {
-        "fade-in": "fade-in 0.25s ease-out",
-        "scale-in": "scale-in 0.2s ease-out",
+        shimmer: "shimmer 1.6s linear infinite",
+        "fade-in": "fade-in 0.2s ease-out both",
+        "fade-in-up": "fade-in-up 0.25s ease-out both",
+        "zoom-in": "zoom-in 0.18s ease-out both",
+        "toast-in": "toast-in 0.2s ease-out both",
       },
     },
   },
   plugins: [],
-};
-export default config;
+} satisfies Config;

@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "purple-world-dev-ae9e6",
+    "dev": "purple-world-dev-ae9e6",
+    "prod": "purple-world"
+  }
+}

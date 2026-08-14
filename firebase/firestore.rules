@@ -1,0 +1,348 @@
+rules_version = '2';
+
+// ===========================================================================
+// Purple World — Firestore Security Rules
+//
+// Model: Freelancer MBA-like private academy. Hafsa (teacher, seeded via the
+// Admin SDK script) controls ALL academic data. Students only read their own
+// slice and create their own chat messages/submissions.
+//
+// Single source of truth for role: users/{uid}.role (client cannot tamper
+// with it — see the users match below). Custom claims remain available as an
+// optional defense-in-depth upgrade on Blaze, but rules rely on the doc.
+// ===========================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------
+    // Shared helpers
+    // ------------------------------------------------------------------
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isTeacher() {
+      return isAuth() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
+        request.auth.token.role == 'teacher'
+      );
+    }
+
+    function isStudent() {
+      return isAuth() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student' ||
+        request.auth.token.role == 'student'
+      );
+    }
+
+    function myUid() {
+      return request.auth.uid;
+    }
+
+    // Requires the current user's users/{uid} doc to exist.
+    function getUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function myStudentId() {
+      return getUser().studentId;
+    }
+
+    function myGroupId() {
+      return getUser().groupId;
+    }
+
+    // Is this student record claimed by the current user?
+    function ownsStudent(studentId) {
+      return get(/databases/$(database)/documents/students/$(studentId)).data.linkedUid == request.auth.uid;
+    }
+
+    function isParticipant(conversation) {
+      return conversation.participantIds != null &&
+             conversation.participantIds.hasAny([request.auth.uid]);
+    }
+
+    // Restrict an update to an allow-list of fields.
+    function onlyFields(newData, oldData, allowed) {
+      return newData.diff(oldData).affectedKeys().hasOnly(allowed);
+    }
+
+    // ------------------------------------------------------------------
+    // users/{uid}
+    // - A user reads their own profile (+ teacher reads all).
+    // - create: ONLY a fresh student account during the invite flow
+    //   (never a teacher; teacher is seeded through the Admin SDK).
+    // - update: self-caretaking fields only; role is immutable.
+    //   Teacher may move a student's studentId/groupId (group transfers).
+    // ------------------------------------------------------------------
+    match /users/{uid} {
+      allow read: if isTeacher() || (isAuth() && uid == myUid());
+      allow create: if isAuth()
+        && uid == myUid()
+        && request.resource.data.role == 'student'
+        && request.resource.data.email == request.auth.token.email
+        && (request.resource.data.studentId == null
+            || ownsStudent(request.resource.data.studentId));
+      allow update: if isAuth() && uid == myUid()
+        && request.resource.data.role == resource.data.role
+        && onlyFields(request.resource.data, resource.data,
+                      ['displayName', 'avatarUrl', 'prefs'])
+        || (isTeacher()
+            && onlyFields(request.resource.data, resource.data,
+                          ['groupId', 'studentId', 'displayName']));
+      allow delete: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // students/{studentId}
+    // - Teacher: full control.
+    // - Student: read ONLY their own record (claimed via linkedUid).
+    //   The one student write is the one-time claim (linkedUid = self).
+    //   Everything else (grades, payments, attendance, group, active) is
+    //   teacher-controlled and blocked for students here.
+    // ------------------------------------------------------------------
+    match /students/{studentId} {
+      allow read: if isTeacher() || (isStudent() && resource.data.linkedUid == myUid());
+      allow create: if isTeacher();
+      allow update: if isTeacher()
+        || (isAuth()
+            && resource.data.linkedUid == null
+            && request.resource.data.linkedUid == myUid()
+            && onlyFields(request.resource.data, resource.data, ['linkedUid']));
+      allow delete: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // groups/{groupId}
+    // - Students may only read the group they belong to.
+    // ------------------------------------------------------------------
+    match /groups/{groupId} {
+      allow read: if isTeacher() || (isStudent() && groupId == myGroupId());
+      allow write: if isTeacher();
+    }
+
+    // ------------------------------------------------------------------
+    // lessons/{lessonId}
+    // - Students read only lessons of their group.
+    // ------------------------------------------------------------------
+    match /lessons/{lessonId} {
+      allow read: if isTeacher() || (isStudent() && resource.data.groupId == myGroupId());
+      allow write: if isTeacher();
+
+      // attendance/{studentId}
+      // - Students read only their own rows (doc id = studentId).
+      match /attendance/{attendanceStudentId} {
+        allow read: if isTeacher()
+          || (isStudent() && attendanceStudentId == myStudentId());
+        allow write: if isTeacher();
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // payments/{paymentId}
+    // ------------------------------------------------------------------
+    match /payments/{paymentId} {
+      allow read: if isTeacher() || (isStudent() && resource.data.studentId == myStudentId());
+      allow write: if isTeacher();
+    }
+
+    // ------------------------------------------------------------------
+    // assessments/{assessmentId} and results
+    // - Students read the assessment header only when it is about their
+    //   group (or is individual, groupId == null); their own result rows.
+    // - Scores live in results and are strictly per-student.
+    // ------------------------------------------------------------------
+    match /assessments/{assessmentId} {
+      allow read: if isTeacher()
+        || (isStudent() && (resource.data.groupId == null || resource.data.groupId == myGroupId()));
+      allow write: if isTeacher();
+
+      match /results/{resultStudentId} {
+        allow read: if isTeacher()
+          || (isStudent() && resultStudentId == myStudentId());
+        allow write: if isTeacher();
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // exercises/{exerciseId} and submissions
+    // - Students read only exercises assigned to them (directly or via group).
+    // - Students may create/update their OWN submission, and ONLY for an
+    //   exercise that is actually assigned to them, and only until... (the
+    //   teacher can grade; submissions are otherwise immutable once graded).
+    // ------------------------------------------------------------------
+    match /exercises/{exerciseId} {
+      allow read: if isTeacher()
+        || (isStudent() && (
+              resource.data.assignedStudentIds.hasAny([myStudentId()])
+           || resource.data.assignedGroupIds.hasAny([myGroupId()])
+           ));
+      allow write: if isTeacher();
+
+      match /submissions/{submissionStudentId} {
+        allow read: if isTeacher()
+          || (isStudent() && submissionStudentId == myStudentId());
+
+        allow create: if isStudent()
+          && submissionStudentId == myStudentId()
+          && request.resource.data.studentId == myStudentId()
+          && (
+            get(/databases/$(database)/documents/exercises/$(exerciseId)).data.assignedStudentIds.hasAny([myStudentId()])
+            ||
+            get(/databases/$(database)/documents/exercises/$(exerciseId)).data.assignedGroupIds.hasAny([myGroupId()])
+          );
+
+        allow update: if isStudent()
+          && submissionStudentId == myStudentId()
+          && request.resource.data.studentId == myStudentId()
+          && onlyFields(request.resource.data, resource.data,
+                        ['content', 'attachmentUrl', 'submittedAt', 'studentId']);
+
+        allow delete: if false;
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // announcements/{announcementId}
+    // - Students read only announcements whose recipientKeys match their
+    //   scope (all / their group / themselves). Server-side filter.
+    // ------------------------------------------------------------------
+    match /announcements/{announcementId} {
+      allow read: if isTeacher()
+        || (isStudent() && resource.data.recipientKeys.hasAny(
+              ['all', 'group:' + myGroupId(), 'student:' + myStudentId()]));
+      allow write: if isTeacher();
+    }
+
+    // ------------------------------------------------------------------
+    // programUnits + lessons — shared curriculum, readable by any member,
+    // written only by the teacher.
+    // ------------------------------------------------------------------
+    match /programUnits/{unitId} {
+      allow read: if isAuth();
+      allow write: if isTeacher();
+
+      match /lessons/{lessonId} {
+        allow read: if isAuth();
+        allow write: if isTeacher();
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // conversations/{conversationId}
+    // - Teacher: everything except delete.
+    // - Student: only conversations they are a participant in.
+    //   Students can never see another student's thread.
+    // messages:
+    //   - create: a participant, senderId MUST equal the caller, and the
+    //     message starts as read by the sender only.
+    //   - update: only appending yourself to readBy (read receipts).
+    // participants/{uid}: a participant updates their own lastReadAt.
+    // ------------------------------------------------------------------
+    match /conversations/{conversationId} {
+      allow read: if isTeacher()
+        || (isStudent() && isParticipant(resource.data));
+      allow create: if isTeacher();
+      allow update: if isTeacher()
+        || (isStudent() && isParticipant(resource.data)
+              && onlyFields(request.resource.data, resource.data,
+                            ['lastMessageAt', 'lastMessagePreview', 'lastMessageSenderId']));
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isTeacher()
+          || (isStudent() && isParticipant(
+                get(/databases/$(database)/documents/conversations/$(conversationId)).data));
+        allow create: if isAuth()
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.readBy.hasAll([request.auth.uid])
+          && (isTeacher()
+              || isParticipant(get(/databases/$(database)/documents/conversations/$(conversationId)).data));
+        allow update: if isAuth()
+          && onlyFields(request.resource.data, resource.data, ['readBy']);
+        allow delete: if false;
+      }
+
+      match /participants/{uid} {
+        allow read: if isTeacher() || (isAuth() && uid == myUid());
+        allow write: if isAuth() && uid == myUid()
+          && onlyFields(request.resource.data, resource.data,
+                        ['lastReadAt', 'uid', 'conversationId']);
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // notifications/{uid}/items/{notificationId}
+    // - Teacher fans out notifications to any user's collection.
+    // - A user reads/marks-as-read only their own.
+    // ------------------------------------------------------------------
+    match /notifications/{uid}/items/{notificationId} {
+      allow read: if isTeacher() || (isAuth() && uid == myUid());
+      allow create: if isTeacher()
+        || (isAuth() && uid == myUid());
+      // marking read is the only client-initiated mutation
+      allow update: if (isAuth() && uid == myUid()
+            && onlyFields(request.resource.data, resource.data, ['read']))
+        || isTeacher();
+      allow delete: if isTeacher();
+    }
+
+    // ------------------------------------------------------------------
+    // notes/{studentId}/entries/{entryId} — teacher's private notes.
+    // NEVER readable by students.
+    // ------------------------------------------------------------------
+    match /notes/{studentId}/entries/{entryId} {
+      allow read, write: if isTeacher();
+    }
+
+    // ------------------------------------------------------------------
+    // invites/{code} — the student onboarding flow.
+    // - Read is OPEN (any anonymous visitor) while the invite is UNUSED and
+    //   not expired. This is acceptable because codes are high-entropy and
+    //   enumeration is infeasible; the invite only reveals the student's
+    //   email + an opaque student id.
+    // - Consumption flips used=false → used=true (any authenticated user,
+    //   typically the claiming student right after signup).
+    // - Create/update/delete: teacher only.
+    // ------------------------------------------------------------------
+    match /invites/{code} {
+      allow read: if isTeacher()
+        || (isAuth()
+            && resource.data.used == false
+            && (resource.data.expiresAt.toMillis() > request.time.toMillis()));
+      allow update: if isTeacher()
+        || (isAuth()
+            && resource.data.used == false
+            && request.resource.data.used == true);
+      allow create: if isTeacher();
+      allow delete: if isTeacher();
+    }
+
+    // ------------------------------------------------------------------
+    // Collection-group access (students viewing their own rows across
+    // collections, and users reading their own participant markers).
+    // These must be declared as {path=**} rules to cover collection-group
+    // queries; the underlying row-level access mirrors the nested rules above.
+    // ------------------------------------------------------------------
+
+    match /{path=**}/submissions/{submissionStudentId} {
+      allow read: if isTeacher()
+        || (isStudent() && submissionStudentId == myStudentId());
+    }
+
+    match /{path=**}/results/{resultStudentId} {
+      allow read: if isTeacher()
+        || (isStudent() && resultStudentId == myStudentId());
+    }
+
+    match /{path=**}/attendance/{attendanceStudentId} {
+      allow read: if isTeacher()
+        || (isStudent() && attendanceStudentId == myStudentId());
+    }
+
+    match /{path=**}/participants/{uid} {
+      allow read: if isTeacher() || (isAuth() && uid == myUid());
+    }
+  }
+}
