@@ -1,0 +1,12 @@
+[build]
+  command = "npm run build:fast"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA redirect — all client-side routes fall back to index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
