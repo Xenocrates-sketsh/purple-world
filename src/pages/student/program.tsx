@@ -8,9 +8,9 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
-import type { ProgramLessonDoc } from "@/lib/types";
+import type { ProgramLessonDoc, ProgramUnitDoc } from "@/lib/types";
 
-const SECTION_LABELS: { key: keyof ProgramLessonDoc; label: string }[] = [
+const SECTION_LABELS: { key: "content" | "grammar" | "vocabulary" | "reading" | "writing" | "listening"; label: string }[] = [
   { key: "content", label: "Lesson" },
   { key: "grammar", label: "Grammar" },
   { key: "vocabulary", label: "Vocabulary" },
@@ -20,7 +20,7 @@ const SECTION_LABELS: { key: keyof ProgramLessonDoc; label: string }[] = [
 ];
 
 export function StudentProgramPage() {
-  const units = useQuery((db) => allUnitsQuery(db));
+  const units = useQuery<ProgramUnitDoc>((db) => allUnitsQuery(db));
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   if (units.loading) {
@@ -73,7 +73,7 @@ function ProgramUnit(props: {
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const lessons = useQuery((db) => lessonsOfUnitQuery(db, props.unitId), [props.unitId]);
+  const lessons = useQuery<ProgramLessonDoc>((db) => lessonsOfUnitQuery(db, props.unitId), [props.unitId]);
   const [openLesson, setOpenLesson] = useState<string | null>(null);
 
   return (

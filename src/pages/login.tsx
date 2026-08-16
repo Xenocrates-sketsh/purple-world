@@ -1,51 +1,164 @@
-import { useState, type FormEvent } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { useMemo, useState, type FormEvent } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import { signInAnonymously, signInWithEmailAndPassword, signOut } from "firebase/auth";
 
-import { useAuth } from "@/lib/auth";
+import { resolveRoleAfterLogin, useAuth } from "@/lib/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
 import { humanError } from "@/lib/errors";
+import { isValidEmail } from "@/lib/format";
+import { useQuery } from "@/hooks/useFirestore";
+import { myArrivalQuery, createArrival } from "@/lib/db/arrivals";
+import type { ArrivalDoc } from "@/lib/types";
 import { Brand } from "@/components/brand";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { CheckCircle2, Clock, XCircle } from "lucide-react";
+
+type Mode = "request" | "signin";
 
 export function LoginPage() {
-  const { user, refreshTokenClaims } = useAuth();
+  const { user, role } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
+  const [mode, setMode] = useState<Mode>("request");
+
+  // request form
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [school, setSchool] = useState("");
+  const [number, setNumber] = useState("");
+  const [age, setAge] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? "/";
+  // legacy sign-in form
+  const [signinEmail, setSigninEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [signinError, setSigninError] = useState<string | null>(null);
+  const [signinLoading, setSigninLoading] = useState(false);
 
-  if (user) {
-    // rely on WelcomePage redirect, but avoid flashing
-    return null;
+  // The student's own arrival request(s) — shown as live status.
+  const myArrivals = useQuery<ArrivalDoc>(
+    user ? (db) => myArrivalQuery(db, user.uid) : null,
+    [user?.uid]
+  );
+
+  const latest = useMemo(() => {
+    const list = myArrivals.docs ?? [];
+    if (list.length === 0) return null;
+    return [...list].sort((a, b) => {
+      const ta = a.data.createdAt?.toMillis?.() ?? 0;
+      const tb = b.data.createdAt?.toMillis?.() ?? 0;
+      return tb - ta;
+    })[0];
+  }, [myArrivals.docs]);
+
+  // Already signed in with a role — go to the right space.
+  if (user && role) {
+    return <Navigate to={role === "teacher" ? "/teacher" : "/student"} replace />;
   }
 
-  async function onSubmit(e: FormEvent) {
+  async function submitRequest(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!email.trim() || !password) {
-      setError("Enter your email and password.");
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedName || !trimmedEmail) {
+      setError("Enter your full name and email.");
+      return;
+    }
+    if (!isValidEmail(trimmedEmail)) {
+      setError("That email address doesn't look right.");
       return;
     }
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(getFirebaseAuth(), email.trim(), password);
-      await refreshTokenClaims();
-      // RouteGate / Welcome will route by role
-      navigate("/");
+      const auth = getFirebaseAuth();
+      const current = auth.currentUser;
+      let uid = current?.uid ?? null;
+      if (!uid || !current?.isAnonymous) {
+        if (current && !current.isAnonymous) await signOut(auth);
+        const cred = await signInAnonymously(auth);
+        uid = cred.user.uid;
+      }
+      await createArrival({
+        name: trimmedName,
+        email: trimmedEmail,
+        school: school.trim() || null,
+        number: number.trim() || null,
+        age: age ? Math.round(Number(age)) : null,
+        uid,
+      });
     } catch (err) {
       setError(humanError(err));
     } finally {
       setLoading(false);
     }
   }
+
+  async function submitSignin(e: FormEvent) {
+    e.preventDefault();
+    setSigninError(null);
+    if (!signinEmail.trim() || !password) {
+      setSigninError("Enter your email and password.");
+      return;
+    }
+    setSigninLoading(true);
+    try {
+      await signInWithEmailAndPassword(getFirebaseAuth(), signinEmail.trim(), password);
+      const resolved = await resolveRoleAfterLogin();
+      if (resolved === "student") {
+        navigate("/student", { replace: true });
+        return;
+      }
+      await signOut(getFirebaseAuth());
+      setSigninError(
+        resolved === "teacher"
+          ? "This is the teacher account — please use the teacher sign-in."
+          : "Couldn't verify your student profile. Ask your teacher to confirm your account is set up, then try again."
+      );
+    } catch (err) {
+      setSigninError(humanError(err));
+    } finally {
+      setSigninLoading(false);
+    }
+  }
+
+  const showRequestForm = !latest || latest.data.status === "rejected";
+
+  const statusPanel =
+    latest?.data.status === "accepted" ? (
+      <div className="flex items-start gap-3 rounded-xl bg-success-soft p-4 text-success">
+        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+        <div>
+          <p className="text-sm font-semibold">Request approved</p>
+          <p className="mt-0.5 text-sm">
+            Your account is ready — opening your space…
+          </p>
+        </div>
+      </div>
+    ) : latest?.data.status === "rejected" ? (
+      <div className="flex items-start gap-3 rounded-xl bg-danger-soft p-4 text-danger">
+        <XCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+        <div>
+          <p className="text-sm font-semibold">Request declined</p>
+          <p className="mt-0.5 text-sm">
+            Your request wasn't approved. Please contact your teacher, or submit a new request.
+          </p>
+        </div>
+      </div>
+    ) : latest?.data.status === "pending" ? (
+      <div className="flex items-start gap-3 rounded-xl bg-warning-soft p-4 text-warning">
+        <Clock className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+        <div>
+          <p className="text-sm font-semibold">Request received</p>
+          <p className="mt-0.5 text-sm">
+            Your teacher will review it soon. You'll be taken to your space once approved.
+          </p>
+        </div>
+      </div>
+    ) : null;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-6">
@@ -54,54 +167,138 @@ export function LoginPage() {
           <Brand />
         </Link>
         <div className="card p-6">
-          <h1 className="text-lg font-bold text-foreground">Welcome back</h1>
+          <h1 className="text-lg font-bold text-foreground">
+            {mode === "request" ? "Join Purple World" : "Welcome back"}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Sign in to your Purple World account.
+            {mode === "request"
+              ? "No password needed — just your name and email. Your teacher approves new students."
+              : "Student sign-in. Teachers use the teacher sign-in."}
           </p>
 
-          <form onSubmit={onSubmit} className="mt-6 space-y-4">
-            <Field label="Email" htmlFor="email">
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </Field>
-            <Field label="Password" htmlFor="password">
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </Field>
+          {statusPanel ? (
+            <div className="mt-6">{statusPanel}</div>
+          ) : null}
 
-            {error ? (
-              <p role="alert" className="text-sm font-medium text-danger">
-                {error}
-              </p>
-            ) : null}
+          {mode === "request" && showRequestForm ? (
+            <form onSubmit={submitRequest} className="mt-6 space-y-4">
+              <Field label="Full name" htmlFor="req-name" required>
+                <Input
+                  id="req-name"
+                  autoComplete="name"
+                  placeholder="Ahmed Benali"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </Field>
+              <Field label="Email" htmlFor="req-email" required>
+                <Input
+                  id="req-email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </Field>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="School" htmlFor="req-school">
+                  <Input
+                    id="req-school"
+                    placeholder="Lycee…"
+                    value={school}
+                    onChange={(e) => setSchool(e.target.value)}
+                  />
+                </Field>
+                <Field label="Number" htmlFor="req-number">
+                  <Input
+                    id="req-number"
+                    placeholder="Phone or student no."
+                    value={number}
+                    onChange={(e) => setNumber(e.target.value)}
+                  />
+                </Field>
+              </div>
+              <Field label="Age" htmlFor="req-age">
+                <Input
+                  id="req-age"
+                  type="number"
+                  min={10}
+                  max={99}
+                  placeholder="17"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                />
+              </Field>
 
-            <Button type="submit" loading={loading} className="w-full">
-              Sign in
-            </Button>
-          </form>
+              {error ? (
+                <p role="alert" className="text-sm font-medium text-danger">
+                  {error}
+                </p>
+              ) : null}
+
+              <Button type="submit" loading={loading} className="w-full">
+                {latest?.data.status === "rejected" ? "Submit a new request" : "Request to join"}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={submitSignin} className="mt-6 space-y-4">
+              <Field label="Email" htmlFor="signin-email">
+                <Input
+                  id="signin-email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={signinEmail}
+                  onChange={(e) => setSigninEmail(e.target.value)}
+                  required
+                />
+              </Field>
+              <Field label="Password" htmlFor="signin-password">
+                <Input
+                  id="signin-password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </Field>
+
+              {signinError ? (
+                <p role="alert" className="text-sm font-medium text-danger">
+                  {signinError}
+                </p>
+              ) : null}
+
+              <Button type="submit" loading={signinLoading} className="w-full">
+                Sign in
+              </Button>
+            </form>
+          )}
 
           <div className="mt-4 flex items-center justify-between text-sm">
+            <button
+              type="button"
+              onClick={() => setMode(mode === "request" ? "signin" : "request")}
+              className="font-medium text-primary hover:underline"
+            >
+              {mode === "request" ? "Already a student? Sign in" : "New student? Request access"}
+            </button>
             <Link to="/forgot-password" className="font-medium text-primary hover:underline">
               Forgot password?
             </Link>
-            <Link to="/register" className="font-medium text-primary hover:underline">
-              New here? Sign up
-            </Link>
           </div>
+
+          <p className="mt-4 border-t pt-4 text-center text-sm text-muted-foreground">
+            Are you the teacher?{" "}
+            <Link to="/login/teacher" className="font-medium text-primary hover:underline">
+              Use the teacher sign-in
+            </Link>
+          </p>
         </div>
       </div>
     </div>

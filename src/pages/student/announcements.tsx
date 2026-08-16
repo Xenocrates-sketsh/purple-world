@@ -3,6 +3,7 @@ import { Megaphone } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@/hooks/useFirestore";
 import { studentAnnouncementsQuery } from "@/lib/db/announcements";
+import type { AnnouncementDoc } from "@/lib/types";
 import { ANNOUNCEMENT_TYPES } from "@/lib/constants";
 import { formatRelative } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
@@ -15,7 +16,7 @@ export function StudentAnnouncementsPage() {
   const { userDoc } = useAuth();
   const studentId = userDoc?.studentId ?? "";
   const groupId = userDoc?.groupId ?? "";
-  const announcements = useQuery(
+  const announcements = useQuery<AnnouncementDoc>(
     (db) =>
       studentId
         ? studentAnnouncementsQuery(db, ["all", `group:${groupId}`, `student:${studentId}`])

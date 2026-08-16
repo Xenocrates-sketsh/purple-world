@@ -11,6 +11,7 @@ import { studentPaymentsQuery } from "@/lib/db/payments";
 import { studentAnnouncementsQuery } from "@/lib/db/announcements";
 import { paths } from "@/lib/db/paths";
 import { formatTime, formatDateShort, formatRelative, toDate, formatMoney } from "@/lib/format";
+import type { StudentDoc, LessonDoc, PaymentDoc, AnnouncementDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,16 +24,16 @@ export function StudentDashboardPage() {
   const studentId = userDoc?.studentId ?? "";
   const groupId = userDoc?.groupId ?? "";
 
-  const student = useDoc(studentId ? paths.students(studentId) : null);
-  const lessons = useQuery(
+  const student = useDoc<StudentDoc>(studentId ? paths.students(studentId) : null);
+  const lessons = useQuery<LessonDoc>(
     (db) => (groupId ? lessonsByGroupQuery(db, groupId) : null),
     [groupId]
   );
-  const payments = useQuery(
+  const payments = useQuery<PaymentDoc>(
     (db) => (studentId ? studentPaymentsQuery(db, studentId) : null),
     [studentId]
   );
-  const announcements = useQuery(
+  const announcements = useQuery<AnnouncementDoc>(
     (db) =>
       studentId
         ? studentAnnouncementsQuery(db, ["all", `group:${groupId}`, `student:${studentId}`])

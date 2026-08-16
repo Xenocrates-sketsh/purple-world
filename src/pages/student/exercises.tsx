@@ -6,7 +6,7 @@ import { useQuery } from "@/hooks/useFirestore";
 import { allExercisesQuery, studentSubmissionsQuery, upsertSubmission } from "@/lib/db/exercises";
 import { EXERCISE_CATEGORIES, EXERCISE_DIFFICULTIES } from "@/lib/constants";
 import { formatRelative } from "@/lib/format";
-import type { SubmissionDoc } from "@/lib/types";
+import type { ExerciseDoc, SubmissionDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,8 +25,8 @@ export function StudentExercisesPage() {
   const studentId = userDoc?.studentId ?? "";
   const groupId = userDoc?.groupId ?? "";
 
-  const exercises = useQuery((db) => allExercisesQuery(db));
-  const submissions = useQuery(
+  const exercises = useQuery<ExerciseDoc>((db) => allExercisesQuery(db));
+  const submissions = useQuery<SubmissionDoc>(
     (db) => (studentId ? studentSubmissionsQuery(db, studentId) : null),
     [studentId]
   );
@@ -40,7 +40,7 @@ export function StudentExercisesPage() {
     const map = new Map<string, SubmissionDoc>();
     for (const s of submissions.docs ?? []) {
       // collectionGroup doc lives at exercises/{exerciseId}/submissions/{studentId}
-      const exerciseId = s.ref.parent?.parent?.id;
+      const exerciseId = s.ref?.parent?.parent?.id;
       if (exerciseId) map.set(exerciseId, s.data);
     }
     return map;

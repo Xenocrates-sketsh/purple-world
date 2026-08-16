@@ -11,11 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { School, GraduationCap, GitBranch, Phone } from "lucide-react";
 import { doc, updateDoc } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase";
+import type { StudentDoc } from "@/lib/types";
 
 export function StudentProfilePage() {
   const { user, userDoc } = useAuth();
   const { toast } = useToast();
-  const student = useDoc(
+  const student = useDoc<StudentDoc>(
     userDoc?.studentId ? paths.students(userDoc.studentId) : null
   );
   const [updatingPrefs, setUpdatingPrefs] = useState(false);

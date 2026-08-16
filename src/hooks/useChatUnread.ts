@@ -20,8 +20,6 @@ export function useChatUnread(uid: string) {
     [uid]
   );
 
-  const readAt = useDocMap(parts.docs);
-
   const unreadByConv = useMemo(() => {
     const map: Record<string, boolean> = {};
     for (const c of convs.docs ?? []) {

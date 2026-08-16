@@ -6,9 +6,8 @@ import { useQuery } from "@/hooks/useFirestore";
 import { allGroupsQuery, createGroup, deleteGroup } from "@/lib/db/groups";
 import { allStudentsQuery } from "@/lib/db/students";
 import { DEFAULT_GROUP_COLORS, DAY_LABELS } from "@/lib/constants";
-import type { GroupDoc } from "@/lib/types";
+import type { GroupDoc, StudentDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,8 +21,8 @@ import { useToast } from "@/lib/toast";
 
 export function TeacherGroupsPage() {
   const { toast } = useToast();
-  const groups = useQuery(allGroupsQuery);
-  const students = useQuery(allStudentsQuery);
+  const groups = useQuery<GroupDoc>(allGroupsQuery);
+  const students = useQuery<StudentDoc>(allStudentsQuery);
   const studentsByGroup = new Map<string, number>();
   for (const s of students.docs ?? []) {
     const key = s.data.groupId ?? "";

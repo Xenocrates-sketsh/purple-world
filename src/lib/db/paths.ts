@@ -33,12 +33,15 @@ export const paths = {
   notes: (studentId: string, entryId: string) => `notes/${studentId}/entries/${entryId}`,
   notesOf: (studentId: string) => `notes/${studentId}/entries`,
   invites: (code: string) => `invites/${code}`,
+  arrivals: (id: string) => `arrivals/${id}`,
 } as const;
 
 /** Identity of a Firestore doc: id + typed data. */
 export interface Doc<T> {
   id: string;
   data: T;
+  /** Firestore document reference (available on listener-produced docs). */
+  ref?: import("firebase/firestore").DocumentReference;
 }
 
 export function asDoc<T>(id: string, data: T): Doc<T> {

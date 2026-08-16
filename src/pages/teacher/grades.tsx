@@ -7,7 +7,7 @@ import { allAssessmentsQuery, assessmentsByGroupQuery, createAssessment, updateA
 import { allGroupsQuery } from "@/lib/db/groups";
 import { Timestamp } from "firebase/firestore";
 import { ASSESSMENT_TYPES, MAX_ASSESSMENT_SCORE } from "@/lib/constants";
-import type { AssessmentDoc, AssessmentType } from "@/lib/types";
+import type { AssessmentDoc, AssessmentType, GroupDoc } from "@/lib/types";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,10 +43,10 @@ interface FormState {
 
 export function TeacherGradesPage() {
   const { toast } = useToast();
-  const groups = useQuery(allGroupsQuery);
+  const groups = useQuery<GroupDoc>(allGroupsQuery);
   const groupsById = useDocMap(groups.docs);
   const [groupId, setGroupId] = useState("");
-  const assessments = useQuery(
+  const assessments = useQuery<AssessmentDoc>(
     (db) => (groupId ? assessmentsByGroupQuery(db, groupId) : allAssessmentsQuery(db)),
     [groupId]
   );

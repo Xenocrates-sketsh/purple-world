@@ -8,7 +8,7 @@ import { attendanceOfLessonQuery, markAttendanceForLesson } from "@/lib/db/sched
 import { studentsByGroupQuery } from "@/lib/db/students";
 import { paths } from "@/lib/db/paths";
 import { ATTENDANCE_STATUSES } from "@/lib/constants";
-import type { AttendanceStatus } from "@/lib/types";
+import type { AttendanceStatus, LessonDoc, StudentDoc, AttendanceDoc } from "@/lib/types";
 import { formatDate, formatTime } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,11 +21,11 @@ import { useToast } from "@/lib/toast";
 export function TeacherAttendancePage() {
   const { lessonId = "" } = useParams();
   const { toast } = useToast();
-  const lesson = useDoc(paths.lessons(lessonId));
+  const lesson = useDoc<LessonDoc>(paths.lessons(lessonId));
   const groupId = lesson.doc?.data.groupId ?? "";
 
-  const members = useQuery((db) => studentsByGroupQuery(db, groupId), [groupId]);
-  const existing = useQuery((db) => attendanceOfLessonQuery(db, lessonId), [lessonId]);
+  const members = useQuery<StudentDoc>((db) => studentsByGroupQuery(db, groupId), [groupId]);
+  const existing = useQuery<AttendanceDoc>((db) => attendanceOfLessonQuery(db, lessonId), [lessonId]);
 
   const [statuses, setStatuses] = useState<Record<string, AttendanceStatus>>({});
   const [saving, setSaving] = useState(false);

@@ -7,6 +7,7 @@ import {
   Wallet,
   GraduationCap,
   CalendarDays,
+  UserRoundCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -28,6 +29,7 @@ export const teacherPrimaryNav: NavItem[] = [
 ];
 
 export const teacherSecondaryNav: NavItem[] = [
+  { to: "/teacher/arrivals", label: "New Arrivals", icon: UserRoundCheck },
   { to: "/teacher/groups", label: "Groups", icon: CalendarClock },
   { to: "/teacher/grades", label: "Grades", icon: ClipboardList },
   { to: "/teacher/exercises", label: "Exercises", icon: ClipboardList },

@@ -39,6 +39,27 @@ export type NotificationType =
   | "new_grade"
   | "schedule_change";
 
+/** A student's request to join the academy (created from the no-password login form). */
+export type ArrivalStatus = "pending" | "accepted" | "rejected";
+
+/** arrivals/{arrivalId} — student requests approval to join via name + email. */
+export interface ArrivalDoc {
+  name: string;
+  email: string;
+  school: string | null;
+  /** student number or phone, free-form */
+  number: string | null;
+  age: number | null;
+  status: ArrivalStatus;
+  /** the (anonymous) auth uid that submitted this request */
+  uid: string | null;
+  /** set when accepted */
+  studentId: string | null;
+  createdAt: Timestamp;
+  handledAt: Timestamp | null;
+  handledBy: string | null;
+}
+
 /** users/{uid} */
 export interface UserDoc {
   role: Role;
@@ -61,6 +82,8 @@ export interface UserDoc {
 export interface StudentDoc {
   name: string;
   studentNo: string;
+  email: string | null;
+  age: number | null;
   phone: string | null;
   parentPhone: string | null;
   school: string | null;

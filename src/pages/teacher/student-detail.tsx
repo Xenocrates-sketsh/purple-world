@@ -3,8 +3,6 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Pencil,
-  Copy,
-  Check,
   MessageSquare,
   GraduationCap,
   FileText,
@@ -23,14 +21,11 @@ import { allGroupsQuery } from "@/lib/db/groups";
 import { studentPaymentsQuery } from "@/lib/db/payments";
 import { allAssessmentsQuery, studentResultsQuery } from "@/lib/db/assessments";
 import { notesQuery, addNote, updateNote, deleteNote } from "@/lib/db/notes";
-import {
-  createInviteForStudent,
-  generateInviteCode,
-} from "@/lib/db/invites";
 import { findConversation, createConversation } from "@/lib/db/chat";
 import { paths } from "@/lib/db/paths";
-import { BAC_STREAMS, PENDING_INVITE_TTL_DAYS } from "@/lib/constants";
+import { BAC_STREAMS } from "@/lib/constants";
 import { formatDate, formatMoney, formatDateTime } from "@/lib/format";
+import type { StudentDoc, GroupDoc, NoteEntryDoc, PaymentDoc, AssessmentDoc, AssessmentResultDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,22 +45,19 @@ export function TeacherStudentDetailPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const student = useDoc(paths.students(studentId));
-  const groups = useQuery(allGroupsQuery);
-  const groupsById = useDocMap(groups.docs);
-  const notes = useQuery(notesQuery.bind(null, studentId), [studentId]);
-  const payments = useQuery(studentPaymentsQuery.bind(null, studentId), [studentId]);
-  const assessments = useQuery(allAssessmentsQuery);
+  const student = useDoc<StudentDoc>(paths.students(studentId));
+  const groups = useQuery<GroupDoc>(allGroupsQuery);
+  const notes = useQuery<NoteEntryDoc>((db) => notesQuery(db, studentId), [studentId]);
+  const payments = useQuery<PaymentDoc>((db) => studentPaymentsQuery(db, studentId), [studentId]);
+  const assessments = useQuery<AssessmentDoc>(allAssessmentsQuery);
   const assessmentsById = useDocMap(assessments.docs);
-  const results = useQuery((db) => studentResultsQuery(db, studentId), [studentId]);
+  const results = useQuery<AssessmentResultDoc>((db) => studentResultsQuery(db, studentId), [studentId]);
 
   const [editOpen, setEditOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState<{
@@ -132,37 +124,6 @@ export function TeacherStudentDetailPage() {
     }
   }
 
-  async function onCreateInvite(e: FormEvent) {
-    e.preventDefault();
-    if (!data) return;
-    setSaving(true);
-    try {
-      const code = generateInviteCode();
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + PENDING_INVITE_TTL_DAYS);
-      await createInviteForStudent(code, studentId, inviteEmail.trim() || null, expiresAt);
-      await updateStudent(studentId, { inviteCode: code });
-      toast("Invite created — share the code with the student", { variant: "success" });
-      setInviteOpen(false);
-      setInviteEmail("");
-    } catch {
-      toast("Could not create invite", { variant: "error" });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function onCopyInvite() {
-    if (!data?.inviteCode) return;
-    try {
-      await navigator.clipboard.writeText(data.inviteCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
-    } catch {
-      // clipboard may be unavailable on http; ignore
-    }
-  }
-
   async function onAddNote(e: FormEvent) {
     e.preventDefault();
     if (!noteText.trim()) return;
@@ -192,7 +153,7 @@ export function TeacherStudentDetailPage() {
 
   async function onChat() {
     if (!data?.linkedUid) {
-      toast("This student hasn't signed up yet — create an invite first", { variant: "warning" });
+      toast("This student has no account yet — create it from the admin tool first", { variant: "warning" });
       return;
     }
     const teacherUid = user?.uid ?? "";
@@ -215,7 +176,7 @@ export function TeacherStudentDetailPage() {
     );
   }
 
-  if (!student.doc) {
+  if (!student.doc || !data) {
     return (
       <EmptyState
         icon={GraduationCap}
@@ -244,7 +205,7 @@ export function TeacherStudentDetailPage() {
               Edit profile
             </Button>
             <Button onClick={() => setInviteOpen(true)} leftIcon={<UserPlus className="h-4 w-4" aria-hidden />}>
-              Sign-up invite
+              Create account
             </Button>
           </div>
         }
@@ -254,9 +215,7 @@ export function TeacherStudentDetailPage() {
         {data.linkedUid != null ? (
           <Badge variant="success">Signed up</Badge>
         ) : (
-          <Badge variant="warning">
-            {data.inviteCode ? "Invite sent — not yet signed up" : "Invite pending"}
-          </Badge>
+          <Badge variant="warning">Account not created yet</Badge>
         )}
         <Badge variant={data.active ? "primary" : "neutral"}>{data.active ? "Active" : "Inactive"}</Badge>
         <Select
@@ -452,23 +411,13 @@ export function TeacherStudentDetailPage() {
             </CardContent>
           </Card>
 
-          {data.inviteCode && (
+          {data.linkedUid == null && (
             <Card>
-              <CardHeader
-                title="Invite code"
-                description="Share this with the student to sign up"
-                action={
-                  <Button variant="ghost" size="sm" onClick={onCopyInvite} leftIcon={copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}>
-                    {copied ? "Copied" : "Copy"}
-                  </Button>
-                }
-              />
+              <CardHeader title="Account not created yet" />
               <CardContent>
-                <code className="block select-all rounded-lg bg-surface-muted px-3 py-2 font-mono text-sm tracking-wider text-foreground">
-                  {data.inviteCode}
-                </code>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Have them open {import.meta.env.VITE_APP_URL || "this app"} → Sign up with code.
+                <p className="text-sm text-muted-foreground">
+                  There is no open sign-up in this app. Create this student's account from the
+                  admin tool so they can log in with an email and password.
                 </p>
               </CardContent>
             </Card>
@@ -523,25 +472,22 @@ export function TeacherStudentDetailPage() {
       <Modal
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
-        title="Create a sign-up invite"
-        description={`The code expires in ${PENDING_INVITE_TTL_DAYS} days. The student signs up with it — linking this record to their account.`}
+        title="Create student account"
+        description="Student accounts are created by the teacher, not by open sign-up. Run this on your computer:"
         footer={
-          <>
-            <Button variant="ghost" onClick={() => setInviteOpen(false)}>Cancel</Button>
-            <Button onClick={onCreateInvite} loading={saving} leftIcon={<UserPlus className="h-4 w-4" aria-hidden />}>
-              Generate code
-            </Button>
-          </>
+          <Button variant="ghost" onClick={() => setInviteOpen(false)}>Close</Button>
         }
       >
-        <form onSubmit={onCreateInvite} className="space-y-4">
-          <Field
-            label="Student email (optional)"
-            hint="If provided, only this email may use the invite."
-          >
-            <Input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="student@example.com" type="email" />
+        <div className="space-y-3">
+          <Field label="Name" hint={`Student id: ${studentId}`}>
+            <code className="block select-all rounded-lg bg-surface-muted px-3 py-2 font-mono text-sm text-foreground">
+              node --experimental-strip-types scripts/create-student.ts \
+                --name "{data?.name ?? "Student Name"}" \
+                --email student@example.com --password "change-me" \
+                --student-id {studentId}
+            </code>
           </Field>
-        </form>
+        </div>
       </Modal>
 
       <Modal

@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useDoc } from "@/hooks/useFirestore";
 import { paths } from "@/lib/db/paths";
 import { DAY_LABELS } from "@/lib/constants";
+import type { GroupDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -13,7 +14,7 @@ import { SkeletonList } from "@/components/ui/skeleton";
 export function StudentGroupPage() {
   const { userDoc } = useAuth();
   const groupId = userDoc?.groupId ?? "";
-  const group = useDoc(groupId ? paths.groups(groupId) : null);
+  const group = useDoc<GroupDoc>(groupId ? paths.groups(groupId) : null);
 
   return (
     <div>

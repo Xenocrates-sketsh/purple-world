@@ -9,6 +9,7 @@ import { allGroupsQuery } from "@/lib/db/groups";
 import { allStudentsQuery, studentsByGroupQuery } from "@/lib/db/students";
 import { paths } from "@/lib/db/paths";
 import { formatDate } from "@/lib/format";
+import type { AssessmentDoc, GroupDoc, StudentDoc, AssessmentResultDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,19 +29,19 @@ interface Row {
 export function TeacherGradeDetailPage() {
   const { assessmentId = "" } = useParams();
   const { toast } = useToast();
-  const assessment = useDoc(paths.assessments(assessmentId));
-  const groups = useQuery(allGroupsQuery);
+  const assessment = useDoc<AssessmentDoc>(paths.assessments(assessmentId));
+  const groups = useQuery<GroupDoc>(allGroupsQuery);
   const groupsById = useDocMap(groups.docs);
 
   const fixedGroupId = assessment.doc?.data.groupId ?? "";
   const [altGroupId, setAltGroupId] = useState("");
   const effectiveGroup = fixedGroupId || altGroupId;
 
-  const allStudents = useQuery(
+  const allStudents = useQuery<StudentDoc>(
     (db) => allStudentsQuery(db),
     []
   );
-  const groupStudents = useQuery(
+  const groupStudents = useQuery<StudentDoc>(
     (db) => studentsByGroupQuery(db, effectiveGroup),
     [effectiveGroup]
   );
@@ -48,7 +49,7 @@ export function TeacherGradeDetailPage() {
     ? (groupStudents.docs ?? [])
     : (allStudents.docs ?? []).filter((s) => s.data.active);
 
-  const existing = useQuery((db) => resultsOfAssessmentQuery(db, assessmentId), [assessmentId]);
+  const existing = useQuery<AssessmentResultDoc>((db) => resultsOfAssessmentQuery(db, assessmentId), [assessmentId]);
 
   const [rows, setRows] = useState<Record<string, Row>>({});
   const [saving, setSaving] = useState(false);

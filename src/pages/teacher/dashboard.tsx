@@ -7,17 +7,19 @@ import {
   MessageSquare,
   FileText,
   ArrowRight,
+  UserPlus,
 } from "lucide-react";
 
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@/hooks/useFirestore";
 import { useChatUnread } from "@/hooks/useChatUnread";
 import { allStudentsQuery } from "@/lib/db/students";
+import { arrivalsQuery } from "@/lib/db/arrivals";
 import { allGroupsQuery } from "@/lib/db/groups";
 import { allPaymentsQuery } from "@/lib/db/payments";
 import { allAnnouncementsQuery } from "@/lib/db/announcements";
 import { formatTime, formatRelative, toDate } from "@/lib/format";
-import type { LessonDoc, SubmissionDoc } from "@/lib/types";
+import type { LessonDoc, SubmissionDoc, StudentDoc, GroupDoc, PaymentDoc, AnnouncementDoc, ArrivalDoc } from "@/lib/types";
 import { PageHeader, StatCard } from "@/components/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -28,10 +30,10 @@ export function TeacherDashboardPage() {
   const { user } = useAuth();
   const uid = user?.uid ?? "";
 
-  const students = useQuery(allStudentsQuery);
-  const groups = useQuery(allGroupsQuery);
-  const payments = useQuery(allPaymentsQuery);
-  const announcements = useQuery(allAnnouncementsQuery);
+  const students = useQuery<StudentDoc>(allStudentsQuery);
+  const groups = useQuery<GroupDoc>(allGroupsQuery);
+  const payments = useQuery<PaymentDoc>(allPaymentsQuery);
+  const announcements = useQuery<AnnouncementDoc>(allAnnouncementsQuery);
   const pending = useQuery<SubmissionDoc>(
     (db) =>
       query(
@@ -56,6 +58,9 @@ export function TeacherDashboardPage() {
   );
   const { unreadCount, unreadCountLoading } = useChatUnread(uid);
 
+  const arrivals = useQuery<ArrivalDoc>(arrivalsQuery);
+  const pendingArrivals = (arrivals.docs ?? []).filter((a) => a.data.status === "pending").length;
+
   const activeStudents = (students.docs ?? []).filter((s) => s.data.active).length;
   const duePayments = (payments.docs ?? []).filter(
     (p) => p.data.status === "due" && toDate(p.data.dueDate) != null && toDate(p.data.dueDate)! < new Date()
@@ -78,6 +83,20 @@ export function TeacherDashboardPage() {
           </Link>
         }
       />
+
+      {pendingArrivals > 0 ? (
+        <Link
+          to="/teacher/arrivals"
+          className="mb-4 flex items-center gap-3 rounded-xl bg-warning-soft px-4 py-3 text-sm text-warning transition-colors hover:bg-warning-soft/80"
+        >
+          <UserPlus className="h-5 w-5 shrink-0" aria-hidden />
+          <span>
+            <strong>{pendingArrivals}</strong> new student request{pendingArrivals === 1 ? "" : "s"} awaiting your
+            approval.
+          </span>
+          <ArrowRight className="ml-auto h-4 w-4 shrink-0" aria-hidden />
+        </Link>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard

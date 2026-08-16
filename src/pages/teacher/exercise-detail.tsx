@@ -6,10 +6,9 @@ import { useQuery, useDocMap } from "@/hooks/useFirestore";
 import { useDoc } from "@/hooks/useFirestore";
 import { submissionsOfExerciseQuery, gradeSubmission } from "@/lib/db/exercises";
 import { allStudentsQuery } from "@/lib/db/students";
-import { allGroupsQuery } from "@/lib/db/groups";
 import { paths } from "@/lib/db/paths";
 import { formatRelative } from "@/lib/format";
-import type { SubmissionDoc } from "@/lib/types";
+import type { ExerciseDoc, StudentDoc, SubmissionDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,11 +33,9 @@ function StatusBadge({ s }: { s: SubmissionDoc | null }) {
 export function TeacherExerciseDetailPage() {
   const { exerciseId = "" } = useParams();
   const { toast } = useToast();
-  const exercise = useDoc(paths.exercises(exerciseId));
-  const groups = useQuery(allGroupsQuery);
-  const groupsById = useDocMap(groups.docs);
-  const students = useQuery(allStudentsQuery);
-  const submissions = useQuery((db) => submissionsOfExerciseQuery(db, exerciseId), [exerciseId]);
+  const exercise = useDoc<ExerciseDoc>(paths.exercises(exerciseId));
+  const students = useQuery<StudentDoc>(allStudentsQuery);
+  const submissions = useQuery<SubmissionDoc>((db) => submissionsOfExerciseQuery(db, exerciseId), [exerciseId]);
 
   const [grades, setGrades] = useState<Record<string, { grade: string; feedback: string }>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -82,7 +79,7 @@ export function TeacherExerciseDetailPage() {
   }
 
   if (exercise.loading) return <SkeletonList count={2} />;
-  if (!exercise.doc) {
+  if (!exercise.doc || !data) {
     return (
       <EmptyState
         icon={FileText}

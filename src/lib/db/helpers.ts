@@ -29,7 +29,9 @@ export function listenQuery<T>(
   return onSnapshot(
     q,
     (snap) => {
-      const docs = snap.docs.map((d) => ({ id: d.id, data: d.data() as T }) as Doc<T>);
+      const docs = snap.docs.map(
+        (d) => ({ id: d.id, data: d.data() as T, ref: d.ref }) as Doc<T>
+      );
       onData(docs);
       if (first) {
         first = false;
@@ -55,7 +57,11 @@ export function listenDoc<T>(
   return onSnapshot(
     doc(db, path),
     (snap) => {
-      onData(snap.exists() ? ({ id: snap.id, data: snap.data() as T } as Doc<T>) : null);
+      onData(
+        snap.exists()
+          ? ({ id: snap.id, data: snap.data() as T, ref: snap.ref } as Doc<T>)
+          : null
+      );
       if (first) {
         first = false;
         onFirst?.();

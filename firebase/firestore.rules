@@ -53,11 +53,6 @@ service cloud.firestore {
       return getUser().groupId;
     }
 
-    // Is this student record claimed by the current user?
-    function ownsStudent(studentId) {
-      return get(/databases/$(database)/documents/students/$(studentId)).data.linkedUid == request.auth.uid;
-    }
-
     function isParticipant(conversation) {
       return conversation.participantIds != null &&
              conversation.participantIds.hasAny([request.auth.uid]);
@@ -71,19 +66,17 @@ service cloud.firestore {
     // ------------------------------------------------------------------
     // users/{uid}
     // - A user reads their own profile (+ teacher reads all).
-    // - create: ONLY a fresh student account during the invite flow
-    //   (never a teacher; teacher is seeded through the Admin SDK).
+    // - create: NEVER from the client — no public sign-up. Student accounts
+    //   are provisioned by the teacher via the Admin SDK script, which
+    //   bypasses rules. Keeping create gated to the teacher here means a
+    //   compromised client still can't mint a users doc for an arbitrary
+    //   role/uid.
     // - update: self-caretaking fields only; role is immutable.
     //   Teacher may move a student's studentId/groupId (group transfers).
     // ------------------------------------------------------------------
     match /users/{uid} {
       allow read: if isTeacher() || (isAuth() && uid == myUid());
-      allow create: if isAuth()
-        && uid == myUid()
-        && request.resource.data.role == 'student'
-        && request.resource.data.email == request.auth.token.email
-        && (request.resource.data.studentId == null
-            || ownsStudent(request.resource.data.studentId));
+      allow create: if isTeacher();
       allow update: if isAuth() && uid == myUid()
         && request.resource.data.role == resource.data.role
         && onlyFields(request.resource.data, resource.data,
@@ -316,6 +309,21 @@ service cloud.firestore {
             && resource.data.used == false
             && request.resource.data.used == true);
       allow create: if isTeacher();
+      allow delete: if isTeacher();
+    }
+
+    // ------------------------------------------------------------------
+    // arrivals/{arrivalId} — no-password student onboarding.
+    // - Anyone can submit a request (create) as long as it is PENDING and
+    //   tied to their own uid; a submitter can read only their own request.
+    // - The teacher reviews and flips the status to accepted/rejected.
+    // ------------------------------------------------------------------
+    match /arrivals/{arrivalId} {
+      allow read: if isTeacher() || (isAuth() && resource.data.uid == myUid());
+      allow create: if isAuth()
+        && request.resource.data.uid == myUid()
+        && request.resource.data.status == 'pending';
+      allow update: if isTeacher();
       allow delete: if isTeacher();
     }
 

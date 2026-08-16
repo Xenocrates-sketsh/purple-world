@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Query } from "firebase/firestore";
+import type { DocumentData, Query } from "firebase/firestore";
 
 import { getFirestoreDb } from "@/lib/firebase";
 import { listenDoc, listenQuery } from "@/lib/db/helpers";
@@ -15,7 +15,7 @@ export interface QueryState<T> {
  * Subscribe to a query built from the given builder. `null` disables the
  * listener (e.g. while an id is still loading). Rebuilds when `deps` change.
  */
-export function useQuery<T>(
+export function useQuery<T = DocumentData>(
   build: ((db: ReturnType<typeof getFirestoreDb>) => Query | null) | null,
   deps: unknown[] = []
 ): QueryState<T> {
@@ -28,7 +28,14 @@ export function useQuery<T>(
       return;
     }
     let disposed = false;
-    const q = build(getFirestoreDb());
+    let q: Query | null;
+    try {
+      q = build(getFirestoreDb());
+    } catch (err) {
+      setError(err);
+      setDocs([]);
+      return;
+    }
     if (!q) {
       setDocs(null);
       return;
@@ -59,7 +66,7 @@ export interface DocState<T> {
 }
 
 /** Subscribe to a single document by full path. */
-export function useDoc<T>(path: string | null): DocState<T> {
+export function useDoc<T = DocumentData>(path: string | null): DocState<T> {
   const [doc, setDoc] = useState<Doc<T> | null>(null);
   const [error, setError] = useState<unknown>(null);
 
@@ -69,18 +76,25 @@ export function useDoc<T>(path: string | null): DocState<T> {
       return;
     }
     let disposed = false;
-    const unsub = listenDoc<T>(
-      path,
-      (next) => {
-        if (!disposed) setDoc(next);
-      },
-      (err) => {
-        if (!disposed) setError(err);
-      }
-    );
+    let unsub: (() => void) | undefined;
+    try {
+      unsub = listenDoc<T>(
+        path,
+        (next) => {
+          if (!disposed) setDoc(next);
+        },
+        (err) => {
+          if (!disposed) setError(err);
+        }
+      );
+    } catch (err) {
+      setError(err);
+      setDoc(null);
+      return;
+    }
     return () => {
       disposed = true;
-      unsub();
+      unsub?.();
     };
   }, [path]);
 

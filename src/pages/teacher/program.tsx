@@ -16,7 +16,7 @@ import {
 } from "@/lib/db/program";
 import type { ProgramUnitDoc, ProgramLessonDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,7 +27,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { useToast } from "@/lib/toast";
 
-const LESSON_SECTIONS: { key: keyof ProgramLessonDoc; label: string }[] = [
+type LessonSectionKey = "content" | "grammar" | "vocabulary" | "reading" | "writing" | "listening";
+
+const LESSON_SECTIONS: { key: LessonSectionKey; label: string }[] = [
   { key: "content", label: "Lesson content" },
   { key: "grammar", label: "Grammar" },
   { key: "vocabulary", label: "Vocabulary" },
@@ -38,9 +40,9 @@ const LESSON_SECTIONS: { key: keyof ProgramLessonDoc; label: string }[] = [
 
 export function TeacherProgramPage() {
   const { toast } = useToast();
-  const units = useQuery(allUnitsQuery);
+  const units = useQuery<ProgramUnitDoc>(allUnitsQuery);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const lessons = useQuery(
+  const lessons = useQuery<ProgramLessonDoc>(
     (db) => (expanded ? lessonsOfUnitQuery(db, expanded) : null),
     [expanded]
   );
@@ -125,7 +127,7 @@ export function TeacherProgramPage() {
     if (!expanded || !lessonTitle.trim()) return;
     setSavingLesson(true);
     try {
-      const sections: Partial<ProgramLessonDoc> = {};
+      const sections: Record<LessonSectionKey, string | null> = {} as Record<LessonSectionKey, string | null>;
       for (const s of LESSON_SECTIONS) {
         const val = lessonSections[s.key]?.trim();
         sections[s.key] = val ? val : null;

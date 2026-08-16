@@ -1,12 +1,11 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
 import { Plus, Wallet, CheckCircle2, Trash2 } from "lucide-react";
 
 import { useQuery, useDocMap } from "@/hooks/useFirestore";
 import { allPaymentsQuery, createPayment, deletePayment, markPaymentPaid } from "@/lib/db/payments";
 import { allStudentsQuery } from "@/lib/db/students";
 import { formatDate, formatMoney } from "@/lib/format";
-import type { PaymentDoc } from "@/lib/types";
+import type { PaymentDoc, StudentDoc } from "@/lib/types";
 import { Timestamp } from "firebase/firestore";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,8 +26,8 @@ type Filter = "all" | "due" | "overdue" | "paid";
 
 export function TeacherPaymentsPage() {
   const { toast } = useToast();
-  const payments = useQuery(allPaymentsQuery);
-  const students = useQuery(allStudentsQuery);
+  const payments = useQuery<PaymentDoc>(allPaymentsQuery);
+  const students = useQuery<StudentDoc>(allStudentsQuery);
   const studentsById = useDocMap(students.docs);
 
   const [filter, setFilter] = useState<Filter>("all");

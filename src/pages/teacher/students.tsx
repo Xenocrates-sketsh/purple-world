@@ -6,7 +6,7 @@ import { useQuery, useDocMap } from "@/hooks/useFirestore";
 import { allStudentsQuery, createStudent, setStudentActive } from "@/lib/db/students";
 import { allGroupsQuery } from "@/lib/db/groups";
 import { BAC_STREAMS } from "@/lib/constants";
-import type { StudentDoc } from "@/lib/types";
+import type { StudentDoc, GroupDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
@@ -84,7 +84,7 @@ export function TeacherStudentsPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const students = useQuery<StudentDoc>(allStudentsQuery);
-  const groups = useQuery(allGroupsQuery);
+  const groups = useQuery<GroupDoc>(allGroupsQuery);
   const groupsById = useDocMap(groups.docs);
 
   const [q, setQ] = useState("");
@@ -132,6 +132,8 @@ export function TeacherStudentsPage() {
       const id = await createStudent({
         name: name.trim(),
         studentNo: studentNo.trim(),
+        email: null,
+        age: null,
         phone: phone.trim() || null,
         parentPhone: parentPhone.trim() || null,
         school: school.trim() || null,

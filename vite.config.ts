@@ -8,6 +8,7 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ["firebase", "@firebase/app", "@firebase/firestore", "@firebase/component", "@firebase/util"],
   },
   server: {
     port: 5173,

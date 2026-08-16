@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useChatUnread, sortConversations } from "@/hooks/useChatUnread";
 import { useQuery, useDocMap } from "@/hooks/useFirestore";
 import { allStudentsQuery } from "@/lib/db/students";
+import type { StudentDoc } from "@/lib/types";
 import { formatRelative, truncate } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,7 +18,7 @@ export function TeacherChatPage() {
   const { user } = useAuth();
   const uid = user?.uid ?? "";
   const { conversations, conversationsLoading, unreadByConv } = useChatUnread(uid);
-  const students = useQuery(allStudentsQuery);
+  const students = useQuery<StudentDoc>(allStudentsQuery);
   const studentsById = useDocMap(students.docs);
 
   const sorted = conversations ? sortConversations(conversations) : null;

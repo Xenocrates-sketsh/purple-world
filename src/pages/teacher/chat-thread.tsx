@@ -7,6 +7,7 @@ import { useDoc } from "@/hooks/useFirestore";
 import { findConversation, createConversation } from "@/lib/db/chat";
 import { paths } from "@/lib/db/paths";
 import { ChatThread } from "@/components/chat/chat-thread";
+import type { StudentDoc } from "@/lib/types";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { useToast } from "@/lib/toast";
 
@@ -14,7 +15,7 @@ export function TeacherChatThreadPage() {
   const { studentId = "" } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
-  const student = useDoc(paths.students(studentId));
+  const student = useDoc<StudentDoc>(paths.students(studentId));
   const linkedUid = student.doc?.data.linkedUid ?? null;
 
   const [conversationId, setConversationId] = useState<string | null>(null);

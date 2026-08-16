@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useQuery } from "@/hooks/useFirestore";
 import { studentPaymentsQuery } from "@/lib/db/payments";
 import { formatDate, formatMoney } from "@/lib/format";
+import type { PaymentDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +14,7 @@ import { SkeletonList } from "@/components/ui/skeleton";
 export function StudentPaymentsPage() {
   const { userDoc } = useAuth();
   const studentId = userDoc?.studentId ?? "";
-  const payments = useQuery(
+  const payments = useQuery<PaymentDoc>(
     (db) => (studentId ? studentPaymentsQuery(db, studentId) : null),
     [studentId]
   );

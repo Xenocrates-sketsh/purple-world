@@ -43,7 +43,7 @@ export function WelcomePage() {
         </div>
 
         <div className="space-y-3">
-          <Link to="/register" className="block" tabIndex={-1} aria-label="Continue as student">
+          <Link to="/login" className="block" tabIndex={-1} aria-label="Continue as student">
             <Card className="group card-hover p-5">
               <div className="flex items-center gap-4">
                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-soft text-primary">
@@ -58,15 +58,15 @@ export function WelcomePage() {
                     />
                   </p>
                   <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
-                    Enter your student space to access lessons, exercises, grades, schedule, and chat
-                    with Hafsa.
+                    Request access with your name and email, then sign in to lessons, exercises,
+                    grades, schedule, and chat with Hafsa.
                   </p>
                 </div>
               </div>
             </Card>
           </Link>
 
-          <Link to="/login" className="block" tabIndex={-1} aria-label="Sign in as the teacher">
+          <Link to="/login/teacher" className="block" tabIndex={-1} aria-label="Sign in as the teacher">
             <Card className="group card-hover bg-gradient-to-br from-primary-soft/60 to-accent/40 p-5">
               <div className="flex items-center gap-4">
                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
@@ -91,7 +91,7 @@ export function WelcomePage() {
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Need an account? Students sign up with the invite code Hafsa provides.
+          New students? Request access with your name and email — your teacher approves new accounts.
         </p>
       </div>
     </div>

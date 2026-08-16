@@ -6,7 +6,7 @@ import { allAnnouncementsQuery, createAnnouncement, deleteAnnouncement, fanOutNo
 import { allGroupsQuery } from "@/lib/db/groups";
 import { allStudentsQuery } from "@/lib/db/students";
 import { ANNOUNCEMENT_TYPES } from "@/lib/constants";
-import type { AnnouncementTarget, AnnouncementType } from "@/lib/types";
+import type { AnnouncementTarget, AnnouncementType, AnnouncementDoc, GroupDoc, StudentDoc } from "@/lib/types";
 import { formatDateTime, formatRelative } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,10 +34,10 @@ const TYPE_TONES: Record<AnnouncementType, "primary" | "success" | "warning" | "
 
 export function TeacherAnnouncementsPage() {
   const { toast } = useToast();
-  const announcements = useQuery(allAnnouncementsQuery);
-  const groups = useQuery(allGroupsQuery);
+  const announcements = useQuery<AnnouncementDoc>(allAnnouncementsQuery);
+  const groups = useQuery<GroupDoc>(allGroupsQuery);
   const groupsById = useDocMap(groups.docs);
-  const students = useQuery(allStudentsQuery);
+  const students = useQuery<StudentDoc>(allStudentsQuery);
 
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -63,7 +63,7 @@ export function TeacherAnnouncementsPage() {
       if (target === "group" && groupId) recipientKeys.push(`group:${groupId}`);
       if (target === "student" && studentId) recipientKeys.push(`student:${studentId}`);
 
-      const id = await createAnnouncement({
+      await createAnnouncement({
         title: title.trim(),
         body: body.trim(),
         type,

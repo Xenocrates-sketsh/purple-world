@@ -9,8 +9,8 @@ import { allStudentsQuery } from "@/lib/db/students";
 import { fanOutNotifications } from "@/lib/db/announcements";
 import { Timestamp } from "firebase/firestore";
 import { EXERCISE_CATEGORIES, EXERCISE_DIFFICULTIES } from "@/lib/constants";
-import type { ExerciseCategory, ExerciseDifficulty, ExerciseDoc } from "@/lib/types";
-import { formatDate, formatRelative } from "@/lib/format";
+import type { ExerciseCategory, ExerciseDifficulty, ExerciseDoc, GroupDoc, StudentDoc } from "@/lib/types";
+import { formatRelative } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,10 +57,10 @@ function CategoryDot({ c }: { c: ExerciseCategory }) {
 
 export function TeacherExercisesPage() {
   const { toast } = useToast();
-  const exercises = useQuery(allExercisesQuery);
-  const groups = useQuery(allGroupsQuery);
+  const exercises = useQuery<ExerciseDoc>(allExercisesQuery);
+  const groups = useQuery<GroupDoc>(allGroupsQuery);
   const groupsById = useDocMap(groups.docs);
-  const students = useQuery(allStudentsQuery);
+  const students = useQuery<StudentDoc>(allStudentsQuery);
 
   const [showArchived, setShowArchived] = useState(false);
   const [open, setOpen] = useState(false);
@@ -148,7 +148,7 @@ export function TeacherExercisesPage() {
     }
   }
 
-  async function notifyAssignedStudents(exerciseId: string, action: "created") {
+  async function notifyAssignedStudents(_exerciseId: string, _action: "created") {
     const members = new Set<string>();
     for (const gid of form.assignedGroupIds) {
       for (const s of students.docs ?? []) {

@@ -1,15 +1,13 @@
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import type { ReactNode } from "react";
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 
 import { useAuth } from "@/lib/auth";
 import type { Role } from "@/lib/types";
 import { FullPageSpinner } from "@/components/ui/spinner";
 import { ConfigWarning } from "@/components/config-warning";
-import { getFirebaseAuth, getFirestoreDb, initFirebase } from "@/lib/firebase";
 
 import { WelcomePage } from "@/pages/welcome";
 import { LoginPage } from "@/pages/login";
-import { RegisterPage } from "@/pages/register";
+import { TeacherLoginPage } from "@/pages/teacher-login";
 import { ForgotPasswordPage } from "@/pages/forgot-password";
 
 import { TeacherLayout } from "@/components/layout/teacher-layout";
@@ -18,6 +16,7 @@ import { StudentLayout } from "@/components/layout/student-layout";
 // ---- Teacher pages ----
 import { TeacherDashboardPage } from "@/pages/teacher/dashboard";
 import { TeacherStudentsPage } from "@/pages/teacher/students";
+import { TeacherArrivalsPage } from "@/pages/teacher/arrivals";
 import { TeacherStudentDetailPage } from "@/pages/teacher/student-detail";
 import { TeacherGroupsPage } from "@/pages/teacher/groups";
 import { TeacherGroupDetailPage } from "@/pages/teacher/group-detail";
@@ -56,9 +55,10 @@ function RouteGate({ role }: { role?: Role }) {
     return <FullPageSpinner label="Preparing your space…" />;
   }
   if (!user) {
-    const to = location.pathname.startsWith("/teacher") || location.pathname.startsWith("/student")
-      ? { pathname: "/login", state: { from: location } }
-      : "/login";
+    const teacherRoute = location.pathname.startsWith("/teacher");
+    const to = teacherRoute
+      ? { pathname: "/login/teacher", state: { from: location } }
+      : { pathname: "/login", state: { from: location } };
     return <Navigate to={to} replace />;
   }
   if (role && userRole !== role) {
@@ -73,12 +73,13 @@ export function App() {
       <Routes>
         <Route path="/" element={<WelcomePage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/login/teacher" element={<TeacherLoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/register" element={<RegisterPage />} />
 
         <Route element={<RouteGate role="teacher" />}>
           <Route path="/teacher" element={<TeacherLayout />}>
             <Route index element={<TeacherDashboardPage />} />
+            <Route path="arrivals" element={<TeacherArrivalsPage />} />
             <Route path="students" element={<TeacherStudentsPage />} />
             <Route path="students/:studentId" element={<TeacherStudentDetailPage />} />
             <Route path="groups" element={<TeacherGroupsPage />} />

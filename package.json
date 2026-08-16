@@ -14,7 +14,6 @@
     "seed:admin": "node --experimental-strip-types scripts/seed-admin.ts"
   },
   "dependencies": {
-    "@rollup/wasm-node": "^4.62.4",
     "@supabase/supabase-js": "^2.112.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -44,6 +43,7 @@
     "vite": "^6.0.3"
   },
   "overrides": {
-    "@firebase/app": "0.16.0"
+    "@firebase/app": "0.13.2",
+    "@firebase/component": "0.6.18"
   }
 }

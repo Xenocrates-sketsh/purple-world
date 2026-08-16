@@ -8,6 +8,7 @@ import { allAssessmentsQuery } from "@/lib/db/assessments";
 import { useDoc } from "@/hooks/useFirestore";
 import { paths } from "@/lib/db/paths";
 import { formatDate } from "@/lib/format";
+import type { StudentDoc, AssessmentResultDoc, AssessmentDoc } from "@/lib/types";
 import { PageHeader, StatCard } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,9 +18,9 @@ import { SkeletonList } from "@/components/ui/skeleton";
 export function StudentGradesPage() {
   const { userDoc } = useAuth();
   const studentId = userDoc?.studentId ?? "";
-  const student = useDoc(studentId ? paths.students(studentId) : null);
-  const results = useQuery((db) => studentResultsQuery(db, studentId), [studentId]);
-  const assessments = useQuery(allAssessmentsQuery);
+  const student = useDoc<StudentDoc>(studentId ? paths.students(studentId) : null);
+  const results = useQuery<AssessmentResultDoc>((db) => studentResultsQuery(db, studentId), [studentId]);
+  const assessments = useQuery<AssessmentDoc>(allAssessmentsQuery);
 
   const byId = useMemo(() => new Map(assessments.docs?.map((a) => [a.id, a.data])), [assessments.docs]);
 

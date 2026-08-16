@@ -7,7 +7,7 @@ import { allLessonsQuery, lessonsByGroupQuery, createLesson, updateLesson, delet
 import { allGroupsQuery } from "@/lib/db/groups";
 import { Timestamp } from "firebase/firestore";
 import { formatDate, formatTime, formatWeekday } from "@/lib/format";
-import type { LessonDoc } from "@/lib/types";
+import type { LessonDoc, GroupDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,10 +43,10 @@ const emptyForm: LessonForm = {
 
 export function TeacherSchedulePage() {
   const { toast } = useToast();
-  const groups = useQuery(allGroupsQuery);
+  const groups = useQuery<GroupDoc>(allGroupsQuery);
   const groupsById = useDocMap(groups.docs);
   const [groupId, setGroupId] = useState("");
-  const lessons = useQuery(
+  const lessons = useQuery<LessonDoc>(
     (db) => (groupId ? lessonsByGroupQuery(db, groupId) : allLessonsQuery(db)),
     [groupId]
   );

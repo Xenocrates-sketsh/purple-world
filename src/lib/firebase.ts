@@ -8,11 +8,11 @@ let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 
-function required<T>(value: T, name: string): T {
+function required<T>(value: T | null | undefined, name: string): NonNullable<T> {
   if (value == null) {
     throw new Error(`Firebase "${name}" was accessed before initialization.`);
   }
-  return value;
+  return value as NonNullable<T>;
 }
 
 export function initFirebase(): boolean {

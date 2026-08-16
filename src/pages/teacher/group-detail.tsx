@@ -17,7 +17,7 @@ import { studentsByGroupQuery } from "@/lib/db/students";
 import { notesQuery, addNote, updateNote, deleteNote } from "@/lib/db/notes";
 import { paths } from "@/lib/db/paths";
 import { DAY_LABELS } from "@/lib/constants";
-import type { ScheduleSlot } from "@/lib/types";
+import type { ScheduleSlot, GroupDoc, StudentDoc, NoteEntryDoc } from "@/lib/types";
 import { formatDateTime } from "@/lib/format";
 import { useDoc } from "@/hooks/useFirestore";
 import { PageHeader } from "@/components/page-header";
@@ -28,7 +28,6 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
@@ -39,18 +38,12 @@ function toMinutes(clock: string): number {
   return h * 60 + (m || 0);
 }
 
-function minutesToClock(min: number): string {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
 export function TeacherGroupDetailPage() {
   const { groupId = "" } = useParams();
   const { toast } = useToast();
-  const group = useDoc(paths.groups(groupId));
-  const members = useQuery((db) => studentsByGroupQuery(db, groupId), [groupId]);
-  const notes = useQuery(notesQuery.bind(null, `group:${groupId}`), [groupId]);
+  const group = useDoc<GroupDoc>(paths.groups(groupId));
+  const members = useQuery<StudentDoc>((db) => studentsByGroupQuery(db, groupId), [groupId]);
+  const notes = useQuery<NoteEntryDoc>((db) => notesQuery(db, `group:${groupId}`), [groupId]);
 
   const [editOpen, setEditOpen] = useState(false);
   const [slotOpen, setSlotOpen] = useState(false);
@@ -143,7 +136,7 @@ export function TeacherGroupDetailPage() {
   }
 
   if (group.loading) return <SkeletonList count={2} />;
-  if (!group.doc) {
+  if (!group.doc || !data) {
     return (
       <EmptyState
         icon={Users}

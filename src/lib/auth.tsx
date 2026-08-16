@@ -15,6 +15,7 @@ import {
 } from "firebase/auth";
 import {
   doc,
+  getDoc,
   onSnapshot,
 } from "firebase/firestore";
 
@@ -142,4 +143,36 @@ export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within <AuthProvider>");
   return ctx;
+}
+
+/**
+ * Resolve the user's role right after a sign-in, before any navigation.
+ * Checks the custom claim (forced refresh) first, then falls back to the
+ * users/{uid} profile doc. Returns null only if the account truly has no role.
+ */
+export async function resolveRoleAfterLogin(): Promise<Role | null> {
+  const auth = getFirebaseAuth();
+  const current = auth.currentUser;
+  if (!current) return null;
+
+  try {
+    const result = await getIdTokenResult(current, true);
+    const claim = result.claims.role;
+    if (claim === "teacher" || claim === "student") return claim;
+  } catch {
+    // force-refresh can fail transiently; fall through to the doc
+  }
+
+  try {
+    const db = getFirestoreDb();
+    const snap = await getDoc(doc(db, "users", current.uid));
+    if (snap.exists()) {
+      const r = (snap.data() as { role?: unknown }).role;
+      if (r === "teacher" || r === "student") return r;
+    }
+  } catch {
+    // unreadable doc (offline/permissions) — caller decides what to show
+  }
+
+  return null;
 }
