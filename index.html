@@ -13,6 +13,38 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // DEBUG: surface every error visibly so the "black screen" stops being silent.
+      (function () {
+        function show(title, body) {
+          var pre = document.getElementById("__pw_debug");
+          if (!pre) {
+            pre = document.createElement("pre");
+            pre.id = "__pw_debug";
+            pre.style.cssText =
+              "position:fixed;left:0;right:0;top:0;z-index:2147483647;margin:0;padding:12px;background:#fff5f5;color:#7a0000;border:2px solid #c00;font:12px/1.4 ui-monospace,monospace;white-space:pre-wrap;max-height:70vh;overflow:auto;";
+            document.body && document.body.appendChild(pre);
+          }
+          pre.textContent =
+            (pre.textContent ? pre.textContent + "\n\n" : "") + title + "\n" + body;
+          try { document.title = "ERR " + title; } catch (e) {}
+        }
+        window.addEventListener("error", function (e) {
+          show(
+            "error: " + (e.message || e),
+            (e.filename || "?") + ":" + (e.lineno || "?") + ":" + (e.colno || "?") +
+              (e.error && e.error.stack ? "\n" + e.error.stack : "")
+          );
+        });
+        window.addEventListener("unhandledrejection", function (e) {
+          var r = e.reason;
+          show(
+            "unhandledrejection: " + (r && r.message ? r.message : String(r)),
+            r && r.stack ? r.stack : ""
+          );
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
