@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { BookOpen, Plus, Pencil, Trash2, ChevronDown, ChevronUp, ListOrdered, GraduationCap } from "lucide-react";
+import { BookOpen, Plus, Pencil, Trash2, ChevronDown, ChevronUp, ListOrdered, GraduationCap, Paperclip, FileText, X, ExternalLink } from "lucide-react";
 
 import { useQuery } from "@/hooks/useFirestore";
 import {
@@ -14,6 +14,7 @@ import {
   reorderUnits,
   reorderProgramLessons,
 } from "@/lib/db/program";
+import { uploadLessonFile } from "@/lib/supabase";
 import type { ProgramUnitDoc, ProgramLessonDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
@@ -38,6 +39,18 @@ const LESSON_SECTIONS: { key: LessonSectionKey; label: string }[] = [
   { key: "listening", label: "Listening" },
 ];
 
+const LESSON_ACCEPT =
+  ".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.zip";
+
+function attachmentName(url: string): string {
+  try {
+    const name = decodeURIComponent(url.split("/").pop() ?? "");
+    return name.replace(/^[0-9]+-[a-z0-9]{6}-/, "");
+  } catch {
+    return url.split("/").pop() ?? "Attachment";
+  }
+}
+
 export function TeacherProgramPage() {
   const { toast } = useToast();
   const units = useQuery<ProgramUnitDoc>(allUnitsQuery);
@@ -56,6 +69,8 @@ export function TeacherProgramPage() {
   const [lessonOpen, setLessonOpen] = useState(false);
   const [lessonTitle, setLessonTitle] = useState("");
   const [lessonSections, setLessonSections] = useState<Record<string, string>>({});
+  const [lessonAttachments, setLessonAttachments] = useState<string[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [editingLesson, setEditingLesson] = useState<{ id: string; unitId: string } | null>(null);
   const [savingLesson, setSavingLesson] = useState(false);
 
@@ -104,6 +119,7 @@ export function TeacherProgramPage() {
     setEditingLesson(null);
     setLessonTitle("");
     setLessonSections({});
+    setLessonAttachments([]);
     setLessonOpen(true);
   }
 
@@ -119,7 +135,25 @@ export function TeacherProgramPage() {
       writing: l.data.writing ?? "",
       listening: l.data.listening ?? "",
     });
+    setLessonAttachments(l.data.attachmentUrls ?? []);
     setLessonOpen(true);
+  }
+
+  async function onPickLessonFile(file: File) {
+    setUploadingFile(true);
+    try {
+      const url = await uploadLessonFile(file);
+      setLessonAttachments((prev) => [...prev, url]);
+      toast("File attached", { variant: "success" });
+    } catch {
+      toast("Could not upload the file", { variant: "error" });
+    } finally {
+      setUploadingFile(false);
+    }
+  }
+
+  function removeLessonAttachment(url: string) {
+    setLessonAttachments((prev) => prev.filter((u) => u !== url));
   }
 
   async function onSaveLesson(e: FormEvent) {
@@ -133,11 +167,11 @@ export function TeacherProgramPage() {
         sections[s.key] = val ? val : null;
       }
       if (editingLesson) {
-        await updateProgramLesson(expanded, editingLesson.id, { title: lessonTitle.trim(), ...sections });
+        await updateProgramLesson(expanded, editingLesson.id, { title: lessonTitle.trim(), ...sections, attachmentUrls: lessonAttachments });
         toast("Lesson updated", { variant: "success" });
       } else {
         const maxOrder = Math.max(0, ...(lessons.docs ?? []).map((l) => l.data.order));
-        await createProgramLesson(expanded, { title: lessonTitle.trim(), order: maxOrder + 1, ...sections });
+        await createProgramLesson(expanded, { title: lessonTitle.trim(), order: maxOrder + 1, ...sections, attachmentUrls: lessonAttachments });
         toast("Lesson added", { variant: "success" });
       }
       setLessonOpen(false);
@@ -396,6 +430,62 @@ export function TeacherProgramPage() {
         <form onSubmit={onSaveLesson} className="space-y-4">
           <Field label="Lesson title" htmlFor="l2-title" required>
             <Input id="l2-title" value={lessonTitle} onChange={(e) => setLessonTitle(e.target.value)} placeholder="Reading: The text of Unit 1" required />
+          </Field>
+          <Field
+            label="Files"
+            hint="PDF, images, Word/Excel/PowerPoint, text… up to 50 MB each."
+            htmlFor="lesson-file-input"
+          >
+            <div className="space-y-2">
+              {lessonAttachments.length > 0 ? (
+                <ul className="divide-y divide-border rounded-xl border border-border">
+                  {lessonAttachments.map((url) => (
+                    <li key={url} className="flex items-center gap-2 px-3 py-2">
+                      <FileText className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                      <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+                        {attachmentName(url)}
+                      </span>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-surface-muted hover:text-foreground"
+                        aria-label={`Open ${attachmentName(url)}`}
+                      >
+                        <ExternalLink className="h-4 w-4" aria-hidden />
+                      </a>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${attachmentName(url)}`}
+                        onClick={() => removeLessonAttachment(url)}
+                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-danger-soft hover:text-danger"
+                      >
+                        <X className="h-4 w-4" aria-hidden />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <label
+                htmlFor="lesson-file-input"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:opacity-50"
+              >
+                <Paperclip className="h-4 w-4" aria-hidden />
+                {uploadingFile ? "Uploading…" : "Attach a file"}
+                <input
+                  id="lesson-file-input"
+                  type="file"
+                  accept={LESSON_ACCEPT}
+                  className="hidden"
+                  disabled={uploadingFile}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void onPickLessonFile(f);
+                    e.currentTarget.value = "";
+                  }}
+                />
+              </label>
+            </div>
           </Field>
           <div className="space-y-4">{LESSON_SECTIONS.map((s) => renderLessonSection(s.key))}</div>
         </form>

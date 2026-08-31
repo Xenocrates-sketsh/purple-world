@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, BookOpen } from "lucide-react";
+import { ChevronDown, BookOpen, FileText, ExternalLink } from "lucide-react";
 
 import { useQuery } from "@/hooks/useFirestore";
 import { allUnitsQuery, lessonsOfUnitQuery } from "@/lib/db/program";
@@ -18,6 +18,15 @@ const SECTION_LABELS: { key: "content" | "grammar" | "vocabulary" | "reading" | 
   { key: "writing", label: "Writing" },
   { key: "listening", label: "Listening" },
 ];
+
+function attachmentName(url: string): string {
+  try {
+    const name = decodeURIComponent(url.split("/").pop() ?? "");
+    return name.replace(/^[0-9]+-[a-z0-9]{6}-/, "");
+  } catch {
+    return url.split("/").pop() ?? "Attachment";
+  }
+}
 
 export function StudentProgramPage() {
   const units = useQuery<ProgramUnitDoc>((db) => allUnitsQuery(db));
@@ -133,6 +142,31 @@ function ProgramUnit(props: {
                             </div>
                           );
                         })}
+                        {(l.data.attachmentUrls ?? []).length > 0 ? (
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              Files
+                            </p>
+                            <ul className="mt-1 space-y-1">
+                              {(l.data.attachmentUrls ?? []).map((url, idx) => (
+                                <li key={url}>
+                                  <a
+                                    href={url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center gap-2 rounded-xl border border-border bg-surface-elevated px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+                                  >
+                                    <FileText className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                                    <span className="min-w-0 flex-1 truncate">
+                                      {attachmentName(url) || `File ${idx + 1}`}
+                                    </span>
+                                    <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
                       </div>
                     ) : null}
                   </li>

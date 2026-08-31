@@ -66,10 +66,14 @@ export interface UserDoc {
   email: string;
   displayName: string;
   avatarUrl: string | null;
+  /** Preset fruit/veg avatar key (students) — renders an emoji, uses no storage. */
+  avatarKey: string | null;
   /** Present for students; links to students/{studentId} */
   studentId: string | null;
   /** Present for students; denormalized from their student doc for rule simplicity */
   groupId: string | null;
+  /** Teacher-set lockout flag — blocked students are barred from the app and from chat */
+  blocked?: boolean;
   /** studentId as stored on the students doc (inverse link) */
   createdAt: Timestamp;
   prefs?: {
@@ -90,11 +94,15 @@ export interface StudentDoc {
   stream: string | null;
   groupId: string | null;
   active: boolean;
+  /** Teacher-set lockout flag — blocked students can't use the app or chat */
+  blocked: boolean;
   bacInfo: {
     year: string | null;
     targetScore: number | null;
   };
   avatarUrl: string | null;
+  /** Preset fruit/veg avatar key (students) — renders an emoji, uses no storage. */
+  avatarKey: string | null;
   /** Stamp set when the student claims the record via the invite flow */
   registeredAt: Timestamp | null;
   createdAt: Timestamp;
@@ -227,14 +235,22 @@ export interface ProgramLessonDoc {
   reading: string | null;
   writing: string | null;
   listening: string | null;
+  /** Uploaded PDFs/images/office docs attached to the lesson. */
+  attachmentUrls: string[];
   createdAt: Timestamp;
 }
 
 /** conversations/{conversationId} */
 export interface ConversationDoc {
+  /** "direct" = teacher + one student, "group" = teacher + a class group */
+  kind: "direct" | "group";
   participantIds: string[];
-  /** the students/{id} this conversation belongs to (or teacher-shared) */
+  /** the students/{id} this conversation belongs to (direct chats) */
   studentId: string | null;
+  /** the groups/{id} this conversation belongs to (group chats) */
+  groupId: string | null;
+  /** display name for group chats (denormalized from the group) */
+  name: string | null;
   teacherId: string;
   createdAt: Timestamp;
   lastMessageAt: Timestamp | null;
@@ -248,7 +264,16 @@ export interface MessageDoc {
   senderId: string;
   text: string;
   createdAt: Timestamp;
+  /** uids that have seen this message (starts as [senderId]) */
   readBy: string[];
+  /** client-generated id used to reconcile optimistic sends */
+  clientId: string | null;
+  /** set when the sender edits the message */
+  editedAt: Timestamp | null;
+  /** soft-delete marker; text is kept for history but hidden in the UI */
+  deletedAt: Timestamp | null;
+  /** uid -> emoji reactions (one per user per message) */
+  reactions: Record<string, string> | null;
 }
 
 /** conversations/{conversationId}/participants/{uid} */
@@ -256,6 +281,14 @@ export interface ParticipantDoc {
   uid: string;
   conversationId: string;
   lastReadAt: Timestamp;
+  /** transient "currently typing" heartbeat; compared against the clock */
+  typingAt: Timestamp | null;
+  /**
+   * Messenger-style nicknames: maps another participant's uid -> the label the
+   * owner wants to see for them in THIS conversation only. Each side sets its
+   * own view (stored on its own participant marker), so it's private.
+   */
+  nicknames: Record<string, string> | null;
 }
 
 /** notifications/{uid}/items/{notificationId} */
