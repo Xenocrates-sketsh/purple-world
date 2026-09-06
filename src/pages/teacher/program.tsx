@@ -1,5 +1,18 @@
-import { useState, type FormEvent } from "react";
-import { BookOpen, Plus, Pencil, Trash2, ChevronDown, ChevronUp, ListOrdered, GraduationCap, Paperclip, FileText, X, ExternalLink } from "lucide-react";
+import { useMemo, useState, type FormEvent } from "react";
+import {
+  BookOpen,
+  Plus,
+  Pencil,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  ListOrdered,
+  GraduationCap,
+  Paperclip,
+  FileText,
+  X,
+  ExternalLink,
+} from "lucide-react";
 
 import { useQuery } from "@/hooks/useFirestore";
 import {
@@ -14,8 +27,16 @@ import {
   reorderUnits,
   reorderProgramLessons,
 } from "@/lib/db/program";
+import { allGroupsQuery } from "@/lib/db/groups";
+import { allStudentsQuery } from "@/lib/db/students";
+import { fanOutNotifications } from "@/lib/db/announcements";
 import { uploadLessonFile } from "@/lib/supabase";
-import type { ProgramUnitDoc, ProgramLessonDoc } from "@/lib/types";
+import type {
+  ProgramUnitDoc,
+  ProgramLessonDoc,
+  GroupDoc,
+  StudentDoc,
+} from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,17 +48,6 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { useToast } from "@/lib/toast";
-
-type LessonSectionKey = "content" | "grammar" | "vocabulary" | "reading" | "writing" | "listening";
-
-const LESSON_SECTIONS: { key: LessonSectionKey; label: string }[] = [
-  { key: "content", label: "Lesson content" },
-  { key: "grammar", label: "Grammar" },
-  { key: "vocabulary", label: "Vocabulary" },
-  { key: "reading", label: "Reading" },
-  { key: "writing", label: "Writing" },
-  { key: "listening", label: "Listening" },
-];
 
 const LESSON_ACCEPT =
   ".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.zip";
@@ -54,6 +64,8 @@ function attachmentName(url: string): string {
 export function TeacherProgramPage() {
   const { toast } = useToast();
   const units = useQuery<ProgramUnitDoc>(allUnitsQuery);
+  const groups = useQuery<GroupDoc>(allGroupsQuery);
+  const students = useQuery<StudentDoc>(allStudentsQuery);
   const [expanded, setExpanded] = useState<string | null>(null);
   const lessons = useQuery<ProgramLessonDoc>(
     (db) => (expanded ? lessonsOfUnitQuery(db, expanded) : null),
@@ -68,11 +80,12 @@ export function TeacherProgramPage() {
 
   const [lessonOpen, setLessonOpen] = useState(false);
   const [lessonTitle, setLessonTitle] = useState("");
-  const [lessonSections, setLessonSections] = useState<Record<string, string>>({});
   const [lessonAttachments, setLessonAttachments] = useState<string[]>([]);
+  const [lessonAssignedGroupIds, setLessonAssignedGroupIds] = useState<string[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
-  const [editingLesson, setEditingLesson] = useState<{ id: string; unitId: string } | null>(null);
+  const [editingLesson, setEditingLesson] = useState<{ id: string; unitId: string; originalGroupIds: string[] } | null>(null);
   const [savingLesson, setSavingLesson] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   const [confirmTarget, setConfirmTarget] = useState<{ kind: "unit" | "lesson"; id: string; unitId?: string; label: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -118,25 +131,34 @@ export function TeacherProgramPage() {
     if (!expanded) return;
     setEditingLesson(null);
     setLessonTitle("");
-    setLessonSections({});
     setLessonAttachments([]);
+    setLessonAssignedGroupIds([]);
     setLessonOpen(true);
   }
 
   function openEditLesson(l: { id: string; data: ProgramLessonDoc }) {
     if (!expanded) return;
-    setEditingLesson({ id: l.id, unitId: expanded });
+    setEditingLesson({ id: l.id, unitId: expanded, originalGroupIds: l.data.assignedGroupIds ?? [] });
     setLessonTitle(l.data.title);
-    setLessonSections({
-      content: l.data.content ?? "",
-      grammar: l.data.grammar ?? "",
-      vocabulary: l.data.vocabulary ?? "",
-      reading: l.data.reading ?? "",
-      writing: l.data.writing ?? "",
-      listening: l.data.listening ?? "",
-    });
     setLessonAttachments(l.data.attachmentUrls ?? []);
+    setLessonAssignedGroupIds(l.data.assignedGroupIds ?? []);
     setLessonOpen(true);
+  }
+
+  function tryCloseLesson() {
+    // Don't allow closing while a file is uploading.
+    if (uploadingFile) return;
+    // For NEW lessons: if a file was attached but not yet saved, confirm discard.
+    if (!editingLesson && lessonAttachments.length > 0) {
+      setConfirmDiscard(true);
+      return;
+    }
+    setLessonOpen(false);
+  }
+
+  function discardAndClose() {
+    setConfirmDiscard(false);
+    setLessonOpen(false);
   }
 
   async function onPickLessonFile(file: File) {
@@ -156,22 +178,54 @@ export function TeacherProgramPage() {
     setLessonAttachments((prev) => prev.filter((u) => u !== url));
   }
 
+  function toggleLessonGroup(id: string) {
+    setLessonAssignedGroupIds((prev) =>
+      prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]
+    );
+  }
+
+  /**
+   * Notify every student who is a member of one of the assigned groups (or
+   * everyone, when no groups are selected — the lesson is "visible to all").
+   */
+  async function notifyStudentsForLesson(lessonId: string, title: string) {
+    const showToAll = lessonAssignedGroupIds.length === 0;
+    const uids = (students.docs ?? [])
+      .filter((s) => {
+        if (!s.data.linkedUid) return false;
+        if (showToAll) return true;
+        return s.data.groupId != null && lessonAssignedGroupIds.includes(s.data.groupId);
+      })
+      .map((s) => s.data.linkedUid as string);
+    if (uids.length === 0) return;
+    await fanOutNotifications(uids, {
+      type: "new_lesson",
+      title: "New lesson",
+      body: title,
+      link: "/student/program",
+    });
+  }
+
   async function onSaveLesson(e: FormEvent) {
     e.preventDefault();
     if (!expanded || !lessonTitle.trim()) return;
     setSavingLesson(true);
     try {
-      const sections: Record<LessonSectionKey, string | null> = {} as Record<LessonSectionKey, string | null>;
-      for (const s of LESSON_SECTIONS) {
-        const val = lessonSections[s.key]?.trim();
-        sections[s.key] = val ? val : null;
-      }
+      const title = lessonTitle.trim();
+      const payload = {
+        title,
+        attachmentUrls: lessonAttachments,
+        assignedGroupIds: lessonAssignedGroupIds,
+      };
       if (editingLesson) {
-        await updateProgramLesson(expanded, editingLesson.id, { title: lessonTitle.trim(), ...sections, attachmentUrls: lessonAttachments });
+        await updateProgramLesson(expanded, editingLesson.id, payload);
         toast("Lesson updated", { variant: "success" });
       } else {
         const maxOrder = Math.max(0, ...(lessons.docs ?? []).map((l) => l.data.order));
-        await createProgramLesson(expanded, { title: lessonTitle.trim(), order: maxOrder + 1, ...sections, attachmentUrls: lessonAttachments });
+        await createProgramLesson(expanded, { ...payload, order: maxOrder + 1 });
+        // Fan out notifications to all relevant students. Fire-and-forget;
+        // never block the teacher's save on this.
+        void notifyStudentsForLesson("(just-created)", title);
         toast("Lesson added", { variant: "success" });
       }
       setLessonOpen(false);
@@ -230,27 +284,20 @@ export function TeacherProgramPage() {
     }
   }
 
-  const sortedUnits = [...(units.docs ?? [])].sort((a, b) => a.data.order - b.data.order);
-  const sortedLessons = [...(lessons.docs ?? [])].sort((a, b) => a.data.order - b.data.order);
-
-  const renderLessonSection = (key: string) => {
-    const meta = LESSON_SECTIONS.find((s) => s.key === key)!;
-    return (
-      <Field key={key} label={meta.label}>
-        <Textarea
-          rows={3}
-          value={lessonSections[key] ?? ""}
-          onChange={(e) => setLessonSections((prev) => ({ ...prev, [key]: e.target.value }))}
-        />
-      </Field>
-    );
-  };
+  const sortedUnits = useMemo(
+    () => [...(units.docs ?? [])].sort((a, b) => a.data.order - b.data.order),
+    [units.docs]
+  );
+  const sortedLessons = useMemo(
+    () => [...(lessons.docs ?? [])].sort((a, b) => a.data.order - b.data.order),
+    [lessons.docs]
+  );
 
   return (
     <div>
       <PageHeader
         title="Program"
-        description="The shared curriculum — organized in units and lessons."
+        description="The shared curriculum — units and lessons with PDF resources."
         action={
           <Button onClick={openAddUnit} leftIcon={<Plus className="h-4 w-4" aria-hidden />}>
             New unit
@@ -340,50 +387,63 @@ export function TeacherProgramPage() {
                       <EmptyState icon={BookOpen} title="No lessons in this unit yet" />
                     ) : (
                       <ul className="space-y-2">
-                        {sortedLessons.map((l, li) => (
-                          <li key={l.id} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2.5">
-                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-xs font-semibold text-primary">
-                              {li + 1}
-                            </span>
-                            <p className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{l.data.title}</p>
-                            <div className="flex items-center gap-0.5">
-                              <button
-                                type="button"
-                                aria-label="Move lesson up"
-                                className="rounded p-1 text-muted-foreground hover:bg-surface-muted disabled:opacity-30"
-                                disabled={li === 0}
-                                onClick={() => moveLesson(li, -1)}
-                              >
-                                <ChevronUp className="h-4 w-4" aria-hidden />
-                              </button>
-                              <button
-                                type="button"
-                                aria-label="Move lesson down"
-                                className="rounded p-1 text-muted-foreground hover:bg-surface-muted disabled:opacity-30"
-                                disabled={li === sortedLessons.length - 1}
-                                onClick={() => moveLesson(li, 1)}
-                              >
-                                <ChevronDown className="h-4 w-4" aria-hidden />
-                              </button>
-                              <button
-                                type="button"
-                                aria-label="Edit lesson"
-                                className="rounded p-1.5 text-muted-foreground hover:bg-surface-muted hover:text-foreground"
-                                onClick={() => openEditLesson(l)}
-                              >
-                                <Pencil className="h-4 w-4" aria-hidden />
-                              </button>
-                              <button
-                                type="button"
-                                aria-label="Delete lesson"
-                                className="rounded p-1.5 text-muted-foreground hover:bg-danger-soft hover:text-danger"
-                                onClick={() => setConfirmTarget({ kind: "lesson", id: l.id, unitId: expanded, label: l.data.title })}
-                              >
-                                <Trash2 className="h-4 w-4" aria-hidden />
-                              </button>
-                            </div>
-                          </li>
-                        ))}
+                        {sortedLessons.map((l, li) => {
+                          const groupLabel =
+                            l.data.assignedGroupIds.length === 0
+                              ? "All groups"
+                              : l.data.assignedGroupIds
+                                  .map((gid) => groups.docs?.find((g) => g.id === gid)?.data.name ?? "Group")
+                                  .join(", ");
+                          return (
+                            <li key={l.id} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2.5">
+                              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-xs font-semibold text-primary">
+                                {li + 1}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium text-foreground">{l.data.title}</p>
+                                <p className="truncate text-[11px] text-muted-foreground">
+                                  {l.data.attachmentUrls.length} file{l.data.attachmentUrls.length === 1 ? "" : "s"} · {groupLabel}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-0.5">
+                                <button
+                                  type="button"
+                                  aria-label="Move lesson up"
+                                  className="rounded p-1 text-muted-foreground hover:bg-surface-muted disabled:opacity-30"
+                                  disabled={li === 0}
+                                  onClick={() => moveLesson(li, -1)}
+                                >
+                                  <ChevronUp className="h-4 w-4" aria-hidden />
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label="Move lesson down"
+                                  className="rounded p-1 text-muted-foreground hover:bg-surface-muted disabled:opacity-30"
+                                  disabled={li === sortedLessons.length - 1}
+                                  onClick={() => moveLesson(li, 1)}
+                                >
+                                  <ChevronDown className="h-4 w-4" aria-hidden />
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label="Edit lesson"
+                                  className="rounded p-1.5 text-muted-foreground hover:bg-surface-muted hover:text-foreground"
+                                  onClick={() => openEditLesson(l)}
+                                >
+                                  <Pencil className="h-4 w-4" aria-hidden />
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label="Delete lesson"
+                                  className="rounded p-1.5 text-muted-foreground hover:bg-danger-soft hover:text-danger"
+                                  onClick={() => setConfirmTarget({ kind: "lesson", id: l.id, unitId: expanded, label: l.data.title })}
+                                >
+                                  <Trash2 className="h-4 w-4" aria-hidden />
+                                </button>
+                              </div>
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </div>
@@ -417,23 +477,64 @@ export function TeacherProgramPage() {
 
       <Modal
         open={lessonOpen}
-        onClose={() => setLessonOpen(false)}
+        onClose={tryCloseLesson}
         title={editingLesson ? "Edit lesson" : "New lesson"}
         size="lg"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setLessonOpen(false)}>Cancel</Button>
-            <Button onClick={onSaveLesson} loading={savingLesson}>{editingLesson ? "Save lesson" : "Add lesson"}</Button>
+            <Button variant="ghost" onClick={tryCloseLesson} disabled={uploadingFile}>Cancel</Button>
+            <Button onClick={onSaveLesson} loading={savingLesson} disabled={uploadingFile}>
+              {editingLesson ? "Save lesson" : "Add lesson"}
+            </Button>
           </>
         }
       >
         <form onSubmit={onSaveLesson} className="space-y-4">
           <Field label="Lesson title" htmlFor="l2-title" required>
-            <Input id="l2-title" value={lessonTitle} onChange={(e) => setLessonTitle(e.target.value)} placeholder="Reading: The text of Unit 1" required />
+            <Input
+              id="l2-title"
+              value={lessonTitle}
+              onChange={(e) => setLessonTitle(e.target.value)}
+              placeholder="Reading: The text of Unit 1"
+              required
+            />
           </Field>
+
           <Field
-            label="Files"
-            hint="PDF, images, Word/Excel/PowerPoint, text… up to 50 MB each."
+            label="Which groups will see this lesson?"
+            hint="Leave empty to show it to every group."
+          >
+            {groups.docs == null ? (
+              <SkeletonList count={1} />
+            ) : (groups.docs ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No groups yet. The lesson will be visible to everyone.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {(groups.docs ?? []).map((g) => {
+                  const on = lessonAssignedGroupIds.includes(g.id);
+                  return (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => toggleLessonGroup(g.id)}
+                      className={
+                        "rounded-full border px-3 py-1.5 text-sm transition-colors " +
+                        (on
+                          ? "border-primary bg-primary-soft text-primary"
+                          : "border-border bg-surface-muted text-muted-foreground hover:text-foreground")
+                      }
+                    >
+                      {g.data.name} {on ? "✓" : ""}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </Field>
+
+          <Field
+            label="Files (PDF)"
+            hint="The lesson content lives in the PDF — drag in the file and add a title above."
             htmlFor="lesson-file-input"
           >
             <div className="space-y-2">
@@ -471,7 +572,7 @@ export function TeacherProgramPage() {
                 className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:opacity-50"
               >
                 <Paperclip className="h-4 w-4" aria-hidden />
-                {uploadingFile ? "Uploading…" : "Attach a file"}
+                {uploadingFile ? "Uploading…" : "Attach a PDF"}
                 <input
                   id="lesson-file-input"
                   type="file"
@@ -487,9 +588,18 @@ export function TeacherProgramPage() {
               </label>
             </div>
           </Field>
-          <div className="space-y-4">{LESSON_SECTIONS.map((s) => renderLessonSection(s.key))}</div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={confirmDiscard}
+        title="Discard the attached file?"
+        description="You attached a PDF but didn't add the lesson. The file will be removed from the lesson and you can re-upload it later."
+        confirmLabel="Discard"
+        cancelLabel="Keep editing"
+        onConfirm={discardAndClose}
+        onCancel={() => setConfirmDiscard(false)}
+      />
 
       <ConfirmDialog
         open={confirmTarget != null}

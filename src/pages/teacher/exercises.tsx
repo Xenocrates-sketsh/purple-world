@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Plus, FileText, Pencil, Trash2, Archive, ArchiveRestore, CheckCircle2 } from "lucide-react";
+import { Plus, FileText, Pencil, Trash2, Archive, ArchiveRestore, CheckCircle2, Paperclip, X, ExternalLink } from "lucide-react";
 
 import { useQuery, useDocMap } from "@/hooks/useFirestore";
 import { allExercisesQuery, createExercise, updateExercise, deleteExercise, setExerciseArchived } from "@/lib/db/exercises";
@@ -11,6 +11,7 @@ import { Timestamp } from "firebase/firestore";
 import { EXERCISE_CATEGORIES, EXERCISE_DIFFICULTIES } from "@/lib/constants";
 import type { ExerciseCategory, ExerciseDifficulty, ExerciseDoc, GroupDoc, StudentDoc } from "@/lib/types";
 import { formatRelative } from "@/lib/format";
+import { uploadLessonFile } from "@/lib/supabase";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,18 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { useToast } from "@/lib/toast";
 
+const EXERCISE_ACCEPT =
+  ".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.zip";
+
+function attachmentName(url: string): string {
+  try {
+    const name = decodeURIComponent(url.split("/").pop() ?? "");
+    return name.replace(/^[0-9]+-[a-z0-9]{6}-/, "");
+  } catch {
+    return url.split("/").pop() ?? "Attachment";
+  }
+}
+
 interface FormState {
   title: string;
   description: string;
@@ -33,7 +46,7 @@ interface FormState {
   difficulty: ExerciseDifficulty;
   deadlineDate: string;
   deadlineTime: string;
-  attachmentUrl: string;
+  attachments: string[];
   assignedGroupIds: string[];
   assignedStudentIds: string[];
 }
@@ -46,7 +59,7 @@ const emptyForm: FormState = {
   difficulty: "medium",
   deadlineDate: "",
   deadlineTime: "18:00",
-  attachmentUrl: "",
+  attachments: [],
   assignedGroupIds: [],
   assignedStudentIds: [],
 };
@@ -67,11 +80,29 @@ export function TeacherExercisesPage() {
   const [editing, setEditing] = useState<{ id: string; data: ExerciseDoc } | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [toDelete, setToDelete] = useState<{ id: string; title: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   function toggleId(list: string[], id: string): string[] {
     return list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
+  }
+
+  async function onPickExerciseFile(file: File) {
+    setUploadingFile(true);
+    try {
+      const url = await uploadLessonFile(file);
+      setForm((f) => ({ ...f, attachments: [...f.attachments, url] }));
+      toast("File attached", { variant: "success" });
+    } catch {
+      toast("Could not upload the file", { variant: "error" });
+    } finally {
+      setUploadingFile(false);
+    }
+  }
+
+  function removeExerciseAttachment(url: string) {
+    setForm((f) => ({ ...f, attachments: f.attachments.filter((u) => u !== url) }));
   }
 
   function openCreate() {
@@ -92,7 +123,7 @@ export function TeacherExercisesPage() {
       deadlineTime: x.data.deadline
         ? `${String(x.data.deadline.toDate().getHours()).padStart(2, "0")}:${String(x.data.deadline.toDate().getMinutes()).padStart(2, "0")}`
         : "18:00",
-      attachmentUrl: x.data.attachmentUrls[0] ?? "",
+      attachments: x.data.attachmentUrls ?? [],
       assignedGroupIds: x.data.assignedGroupIds,
       assignedStudentIds: x.data.assignedStudentIds,
     });
@@ -130,7 +161,7 @@ export function TeacherExercisesPage() {
         deadline: dl ? Timestamp.fromDate(dl) : null,
         assignedGroupIds: form.assignedGroupIds,
         assignedStudentIds: form.assignedStudentIds,
-        attachmentUrls: form.attachmentUrl.trim() ? [form.attachmentUrl.trim()] : [],
+        attachmentUrls: form.attachments,
       };
       if (editing) {
         await updateExercise(editing.id, payload);
@@ -294,7 +325,7 @@ export function TeacherExercisesPage() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={onSubmit} loading={saving}>{editing ? "Save changes" : "Publish"}</Button>
+            <Button onClick={onSubmit} loading={saving} disabled={uploadingFile}>{editing ? "Save changes" : "Publish"}</Button>
           </>
         }
       >
@@ -380,8 +411,57 @@ export function TeacherExercisesPage() {
               <Input type="time" value={form.deadlineTime} onChange={(e) => setForm((f) => ({ ...f, deadlineTime: e.target.value }))} />
             </Field>
           </div>
-          <Field label="Attachment URL" hint="Optional link to a PDF, image, or Google doc.">
-            <Input value={form.attachmentUrl} onChange={(e) => setForm((f) => ({ ...f, attachmentUrl: e.target.value }))} placeholder="https://…" />
+          <Field label="Files (PDF)" htmlFor="exercise-file-input" hint="Optional. The exercise sheet / worksheet — drag in a PDF or image.">
+            <div className="space-y-2">
+              {form.attachments.length > 0 ? (
+                <ul className="divide-y divide-border rounded-xl border border-border">
+                  {form.attachments.map((url) => (
+                    <li key={url} className="flex items-center gap-2 px-3 py-2">
+                      <FileText className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                      <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+                        {attachmentName(url)}
+                      </span>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-surface-muted hover:text-foreground"
+                        aria-label={`Open ${attachmentName(url)}`}
+                      >
+                        <ExternalLink className="h-4 w-4" aria-hidden />
+                      </a>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${attachmentName(url)}`}
+                        onClick={() => removeExerciseAttachment(url)}
+                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-danger-soft hover:text-danger"
+                      >
+                        <X className="h-4 w-4" aria-hidden />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <label
+                htmlFor="exercise-file-input"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:opacity-50"
+              >
+                <Paperclip className="h-4 w-4" aria-hidden />
+                {uploadingFile ? "Uploading…" : "Attach a file"}
+                <input
+                  id="exercise-file-input"
+                  type="file"
+                  accept={EXERCISE_ACCEPT}
+                  className="hidden"
+                  disabled={uploadingFile}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void onPickExerciseFile(f);
+                    e.currentTarget.value = "";
+                  }}
+                />
+              </label>
+            </div>
           </Field>
           <Field label="Description" htmlFor="x-desc">
             <Textarea id="x-desc" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={2} />

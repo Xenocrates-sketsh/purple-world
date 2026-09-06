@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, BookOpen, FileText, ExternalLink } from "lucide-react";
 
+import { useAuth } from "@/lib/auth";
 import { useQuery } from "@/hooks/useFirestore";
 import { allUnitsQuery, lessonsOfUnitQuery } from "@/lib/db/program";
 import { PageHeader } from "@/components/page-header";
@@ -9,15 +10,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
 import type { ProgramLessonDoc, ProgramUnitDoc } from "@/lib/types";
-
-const SECTION_LABELS: { key: "content" | "grammar" | "vocabulary" | "reading" | "writing" | "listening"; label: string }[] = [
-  { key: "content", label: "Lesson" },
-  { key: "grammar", label: "Grammar" },
-  { key: "vocabulary", label: "Vocabulary" },
-  { key: "reading", label: "Reading" },
-  { key: "writing", label: "Writing" },
-  { key: "listening", label: "Listening" },
-];
 
 function attachmentName(url: string): string {
   try {
@@ -28,7 +20,15 @@ function attachmentName(url: string): string {
   }
 }
 
+function visibleToMe(lesson: ProgramLessonDoc, myGroupId: string | null): boolean {
+  const g = lesson.assignedGroupIds ?? [];
+  return g.length === 0 || (!!myGroupId && g.includes(myGroupId));
+}
+
 export function StudentProgramPage() {
+  const { userDoc } = useAuth();
+  const myGroupId = userDoc?.groupId ?? null;
+
   const units = useQuery<ProgramUnitDoc>((db) => allUnitsQuery(db));
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -56,7 +56,10 @@ export function StudentProgramPage() {
 
   return (
     <div>
-      <PageHeader title="Program" description="Our BAC English curriculum — unit by unit." />
+      <PageHeader
+        title="Program"
+        description="Units and lessons from your teacher — open any PDF to read or download."
+      />
       <div className="space-y-6">
         {(units.docs ?? []).map((unit, unitIndex) => (
           <ProgramUnit
@@ -67,6 +70,7 @@ export function StudentProgramPage() {
             description={unit.data.description}
             expanded={expanded[unit.id] ?? unitIndex === 0}
             onToggle={() => setExpanded((e) => ({ ...e, [unit.id]: !(e[unit.id] ?? unitIndex === 0) }))}
+            myGroupId={myGroupId}
           />
         ))}
       </div>
@@ -81,9 +85,13 @@ function ProgramUnit(props: {
   description: string | null;
   expanded: boolean;
   onToggle: () => void;
+  myGroupId: string | null;
 }) {
   const lessons = useQuery<ProgramLessonDoc>((db) => lessonsOfUnitQuery(db, props.unitId), [props.unitId]);
   const [openLesson, setOpenLesson] = useState<string | null>(null);
+
+  // Defensive client-side filter on top of the Firestore rule.
+  const visibleLessons = (lessons.docs ?? []).filter((l) => visibleToMe(l.data, props.myGroupId));
 
   return (
     <Card>
@@ -106,11 +114,11 @@ function ProgramUnit(props: {
         <CardContent className="p-0">
           {lessons.loading ? (
             <div className="px-5 pb-5"><SkeletonList count={2} /></div>
-          ) : (lessons.docs ?? []).length === 0 ? (
-            <EmptyState title="No lessons yet" description="Coming soon." />
+          ) : visibleLessons.length === 0 ? (
+            <EmptyState title="No lessons for you yet" description="Lessons your teacher publishes for your group will appear here." />
           ) : (
             <ul className="divide-y divide-border">
-              {(lessons.docs ?? []).map((l, i) => {
+              {visibleLessons.map((l, i) => {
                 const isOpen = openLesson === l.id;
                 return (
                   <li key={l.id}>
@@ -126,22 +134,15 @@ function ProgramUnit(props: {
                       <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
                         {l.data.title}
                       </span>
+                      <span className="text-xs text-muted-foreground">
+                        {l.data.attachmentUrls?.length
+                          ? `${l.data.attachmentUrls.length} file${l.data.attachmentUrls.length === 1 ? "" : "s"}`
+                          : "No file"}
+                      </span>
                       <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", isOpen && "rotate-180")} aria-hidden />
                     </button>
                     {isOpen ? (
                       <div className="space-y-4 border-t border-border bg-surface px-5 py-4">
-                        {SECTION_LABELS.map(({ key, label }) => {
-                          const value = l.data[key];
-                          if (!value) return null;
-                          return (
-                            <div key={key}>
-                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                {label}
-                              </p>
-                              <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{value}</p>
-                            </div>
-                          );
-                        })}
                         {(l.data.attachmentUrls ?? []).length > 0 ? (
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -166,7 +167,9 @@ function ProgramUnit(props: {
                               ))}
                             </ul>
                           </div>
-                        ) : null}
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No files attached to this lesson yet.</p>
+                        )}
                       </div>
                     ) : null}
                   </li>

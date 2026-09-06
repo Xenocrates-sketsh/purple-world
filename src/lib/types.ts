@@ -34,6 +34,7 @@ export type NotificationType =
   | "message"
   | "new_exercise"
   | "new_announcement"
+  | "new_lesson"
   | "upcoming_lesson"
   | "payment_due"
   | "new_grade"
@@ -229,14 +230,14 @@ export interface ProgramUnitDoc {
 export interface ProgramLessonDoc {
   title: string;
   order: number;
-  content: string | null;
-  grammar: string | null;
-  vocabulary: string | null;
-  reading: string | null;
-  writing: string | null;
-  listening: string | null;
   /** Uploaded PDFs/images/office docs attached to the lesson. */
   attachmentUrls: string[];
+  /**
+   * Group IDs allowed to see this lesson. Empty array = all groups.
+   * Students only read lessons whose assignedGroupIds is empty OR contains
+   * their own groupId.
+   */
+  assignedGroupIds: string[];
   createdAt: Timestamp;
 }
 

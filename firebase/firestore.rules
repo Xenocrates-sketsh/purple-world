@@ -53,14 +53,98 @@ service cloud.firestore {
       return getUser().groupId;
     }
 
+    // Teacher-set lockout: a blocked user may not start chats, send messages
+    // or touch participant markers. Reads stay open so their own profile and
+    // the blocked gate keep working. NOTE: missing fields are an ERROR in
+    // rules, so we must guard with `in` before reading .blocked (most
+    // existing users docs predate this field and have no blocked key).
+    function isBlocked() {
+      let user = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return 'blocked' in user && user.blocked == true;
+    }
+
+    // The academy's teacher account, so students know who to message.
+    function teacherUid() {
+      return get(/databases/$(database)/documents/settings/teacher).data.uid;
+    }
+
     function isParticipant(conversation) {
       return conversation.participantIds != null &&
              conversation.participantIds.hasAny([request.auth.uid]);
     }
 
+    // A student may create ONLY a direct conversation with the teacher:
+    // exact participant pair, their own studentId, no group/name/last message.
+    function validStudentConversationCreate(newData) {
+      return newData.kind == 'direct'
+        && newData.participantIds.hasAll([request.auth.uid, teacherUid()])
+        && newData.participantIds.size() == 2
+        && newData.studentId == myStudentId()
+        && newData.teacherId == teacherUid()
+        && newData.groupId == null
+        && newData.name == null
+        && newData.lastMessageAt == null
+        && newData.lastMessagePreview == null
+        && newData.lastMessageSenderId == null;
+    }
+
     // Restrict an update to an allow-list of fields.
     function onlyFields(newData, oldData, allowed) {
       return newData.diff(oldData).affectedKeys().hasOnly(allowed);
+    }
+
+    // Convenience: read a conversation's doc (used by messages/participants).
+    function conversationData(conversationId) {
+      return get(/databases/$(database)/documents/conversations/$(conversationId)).data;
+    }
+
+    // Messenger-style nicknames: a map of participantUid -> label the owner
+    // wants to see for that person in this conversation. Keys must be actual
+    // participants (same pattern as the message-reactions rule); value
+    // constraints (non-empty strings, <= 30 chars) are enforced client-side
+    // and by Firestore's own per-document limits.
+    function validNicknames(nicknames, conversation) {
+      return nicknames == null || (
+        nicknames is map
+        && nicknames.keys().hasOnly(conversation.participantIds)
+      );
+    }
+
+    // A message starts clean: sender-only read, no edit/delete/reactions yet.
+    function validMessageCreate(newData, conversation) {
+      return newData.senderId == request.auth.uid
+        && newData.readBy.hasAll([request.auth.uid])
+        && newData.readBy.hasOnly(conversation.participantIds)
+        && newData.editedAt == null
+        && newData.deletedAt == null
+        && newData.reactions == null;
+    }
+
+    // Updates may only touch readBy / text+editedAt / deletedAt / reactions,
+    // and each change is constrained:
+    //   - text: only by the sender (marks editedAt)
+    //   - deletedAt: only by the sender or a teacher
+    //   - reactions: only participants, only the curated emoji set
+    //   - readBy: append-only, must include the caller, participants only
+    function validMessageUpdate(newData, oldData, conversation) {
+      let changed = newData.diff(oldData).affectedKeys();
+      return changed.hasOnly(['readBy', 'text', 'editedAt', 'deletedAt', 'reactions'])
+        && (!changed.hasAny(['text'])
+            || (newData.editedAt != null
+                && (request.auth.uid == oldData.senderId || isTeacher())))
+        && (!changed.hasAny(['deletedAt'])
+            || (newData.deletedAt != null
+                && (request.auth.uid == oldData.senderId || isTeacher())))
+        && (!changed.hasAny(['reactions'])
+            || (newData.reactions != null
+                && newData.reactions.keys().hasOnly(conversation.participantIds)
+                && newData.reactions.values().hasOnly(
+                     ['👍', '❤️', '😂', '😮', '😢', '😡', '👏', '🙏', '🔥', '🎉'])))
+        && (!changed.hasAny(['readBy'])
+            || (newData.readBy != null
+                && newData.readBy.hasAll(oldData.readBy)
+                && newData.readBy.hasAny([request.auth.uid])
+                && newData.readBy.hasOnly(conversation.participantIds)));
     }
 
     // ------------------------------------------------------------------
@@ -74,16 +158,30 @@ service cloud.firestore {
     // - update: self-caretaking fields only; role is immutable.
     //   Teacher may move a student's studentId/groupId (group transfers).
     // ------------------------------------------------------------------
+    // ------------------------------------------------------------------
+    // settings/{key} — app-wide constants (e.g. the teacher account).
+    // Anyone signed in may read them; only the teacher may write.
+    // ------------------------------------------------------------------
+    match /settings/{key} {
+      allow read: if isAuth();
+      allow write: if isTeacher();
+    }
+
     match /users/{uid} {
-      allow read: if isTeacher() || (isAuth() && uid == myUid());
+      // Students may also read the teacher's profile (avatar/display name) so
+      // the chat UI can show who they're talking to. Only the teacher's doc is
+      // exposed this way, and only the fields each rule below already trusts.
+      allow read: if isTeacher()
+        || (isAuth() && uid == myUid())
+        || (isAuth() && uid == teacherUid());
       allow create: if isTeacher();
       allow update: if isAuth() && uid == myUid()
         && request.resource.data.role == resource.data.role
         && onlyFields(request.resource.data, resource.data,
-                      ['displayName', 'avatarUrl', 'prefs'])
+                      ['displayName', 'avatarUrl', 'avatarKey', 'prefs'])
         || (isTeacher()
             && onlyFields(request.resource.data, resource.data,
-                          ['groupId', 'studentId', 'displayName']));
+                          ['groupId', 'studentId', 'displayName', 'blocked']));
       allow delete: if false;
     }
 
@@ -102,7 +200,11 @@ service cloud.firestore {
         || (isAuth()
             && resource.data.linkedUid == null
             && request.resource.data.linkedUid == myUid()
-            && onlyFields(request.resource.data, resource.data, ['linkedUid']));
+            && onlyFields(request.resource.data, resource.data, ['linkedUid']))
+        // A claimed student may swap their own preset avatar key only.
+        || (isStudent()
+            && resource.data.linkedUid == myUid()
+            && onlyFields(request.resource.data, resource.data, ['avatarKey']));
       allow delete: if false;
     }
 
@@ -209,15 +311,20 @@ service cloud.firestore {
     }
 
     // ------------------------------------------------------------------
-    // programUnits + lessons — shared curriculum, readable by any member,
-    // written only by the teacher.
+    // programUnits + lessons — shared curriculum. Lessons are group-scoped:
+    // students only see lessons whose assignedGroupIds is empty (visible to
+    // all groups) or contains their own groupId. Teachers see everything.
     // ------------------------------------------------------------------
     match /programUnits/{unitId} {
       allow read: if isAuth();
       allow write: if isTeacher();
 
       match /lessons/{lessonId} {
-        allow read: if isAuth();
+        allow read: if isTeacher()
+          || (isStudent() && (
+                resource.data.assignedGroupIds.size() == 0
+             || resource.data.assignedGroupIds.hasAny([myGroupId()])
+          ));
         allow write: if isTeacher();
       }
     }
@@ -228,15 +335,20 @@ service cloud.firestore {
     // - Student: only conversations they are a participant in.
     //   Students can never see another student's thread.
     // messages:
-    //   - create: a participant, senderId MUST equal the caller, and the
-    //     message starts as read by the sender only.
-    //   - update: only appending yourself to readBy (read receipts).
-    // participants/{uid}: a participant updates their own lastReadAt.
+    //   - create: a participant, senderId MUST equal the caller, the message
+    //     starts clean (readBy = sender only, no edit/delete/reactions).
+    //   - update: read receipts (append self to readBy), edit own text,
+    //     soft-delete own or (teacher) any, add reactions.
+    //   - delete: teacher only (hard delete).
+    // participants/{uid}: a participant updates their OWN marker
+    //   (lastReadAt/typingAt); participants may read all markers of their
+    //   own conversation for typing indicators.
     // ------------------------------------------------------------------
     match /conversations/{conversationId} {
       allow read: if isTeacher()
         || (isStudent() && isParticipant(resource.data));
-      allow create: if isTeacher();
+      allow create: if isTeacher()
+        || (isStudent() && !isBlocked() && validStudentConversationCreate(request.resource.data));
       allow update: if isTeacher()
         || (isStudent() && isParticipant(resource.data)
               && onlyFields(request.resource.data, resource.data,
@@ -245,23 +357,53 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         allow read: if isTeacher()
-          || (isStudent() && isParticipant(
-                get(/databases/$(database)/documents/conversations/$(conversationId)).data));
+          || (isStudent() && isParticipant(conversationData(conversationId)));
         allow create: if isAuth()
-          && request.resource.data.senderId == request.auth.uid
-          && request.resource.data.readBy.hasAll([request.auth.uid])
+          && !isBlocked()
+          && validMessageCreate(request.resource.data, conversationData(conversationId))
           && (isTeacher()
-              || isParticipant(get(/databases/$(database)/documents/conversations/$(conversationId)).data));
+              || isParticipant(conversationData(conversationId)));
         allow update: if isAuth()
-          && onlyFields(request.resource.data, resource.data, ['readBy']);
-        allow delete: if false;
+          && request.resource.data.senderId == resource.data.senderId
+          && isParticipant(conversationData(conversationId))
+          && validMessageUpdate(request.resource.data, resource.data,
+                                conversationData(conversationId));
+        allow delete: if isTeacher();
       }
 
       match /participants/{uid} {
-        allow read: if isTeacher() || (isAuth() && uid == myUid());
-        allow write: if isAuth() && uid == myUid()
+        allow read: if isTeacher()
+          || (isAuth() && uid == myUid())
+          || isParticipant(conversationData(conversationId));
+
+        // Create: teacher may seed any marker; a participant may self-heal
+        // their OWN missing marker. The full new doc is validated (diff-based
+        // onlyFields is invalid on create because resource.data is null).
+        allow create: if isAuth()
+          && !isBlocked()
+          && (isTeacher() || (uid == myUid()
+                && isParticipant(conversationData(conversationId))))
+          && request.resource.data.keys().hasOnly(
+               ['uid', 'conversationId', 'lastReadAt', 'typingAt', 'nicknames'])
+          && request.resource.data.uid == uid
+          && request.resource.data.conversationId == conversationId
+          && (!('nicknames' in request.resource.data)
+              || validNicknames(request.resource.data.nicknames,
+                                conversationData(conversationId)));
+
+        // Update: teacher or owner, allow-listed fields only. Nicknames are
+        // validated only when actually present (setTyping/markRead writes
+        // carry no nicknames and must not fail).
+        allow update: if isAuth()
+          && !isBlocked()
+          && (isTeacher() || uid == myUid())
           && onlyFields(request.resource.data, resource.data,
-                        ['lastReadAt', 'uid', 'conversationId']);
+                        ['lastReadAt', 'typingAt', 'uid', 'conversationId', 'nicknames'])
+          && (!('nicknames' in request.resource.data)
+              || validNicknames(request.resource.data.nicknames,
+                                conversationData(conversationId)));
+
+        allow delete: if false;
       }
     }
 
