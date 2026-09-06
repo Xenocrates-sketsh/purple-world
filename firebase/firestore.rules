@@ -311,9 +311,8 @@ service cloud.firestore {
     }
 
     // ------------------------------------------------------------------
-    // programUnits + lessons — shared curriculum. Lessons are group-scoped:
-    // students only see lessons whose assignedGroupIds is empty (visible to
-    // all groups) or contains their own groupId. Teachers see everything.
+    // programUnits + lessons — LEGACY curriculum (kept for old data, no UI
+    // writes to it anymore; the Lessons section uses lessonResources below).
     // ------------------------------------------------------------------
     match /programUnits/{unitId} {
       allow read: if isAuth();
@@ -327,6 +326,20 @@ service cloud.firestore {
           ));
         allow write: if isTeacher();
       }
+    }
+
+    // ------------------------------------------------------------------
+    // lessonResources/{lessonId} — flat PDF library. Lessons are group-scoped:
+    // students only see lessons whose assignedGroupIds is empty (visible to
+    // all groups) or contains their own groupId. Teachers see everything.
+    // ------------------------------------------------------------------
+    match /lessonResources/{lessonId} {
+      allow read: if isTeacher()
+        || (isStudent() && (
+              resource.data.assignedGroupIds.size() == 0
+           || resource.data.assignedGroupIds.hasAny([myGroupId()])
+        ));
+      allow write: if isTeacher();
     }
 
     // ------------------------------------------------------------------

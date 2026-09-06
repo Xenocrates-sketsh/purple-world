@@ -218,25 +218,15 @@ export interface AnnouncementDoc {
   createdAt: Timestamp;
 }
 
-/** programUnits/{unitId} */
-export interface ProgramUnitDoc {
+/** lessonResources/{lessonId} — flat PDF library (title + groups + files only).
+ * Group IDs allowed to see this lesson. Empty array = all groups.
+ * Students only read lessons whose assignedGroupIds is empty OR contains
+ * their own groupId.
+ */
+export interface LessonResourceDoc {
   title: string;
-  description: string | null;
-  order: number;
-  createdAt: Timestamp;
-}
-
-/** programUnits/{unitId}/lessons/{lessonId} */
-export interface ProgramLessonDoc {
-  title: string;
-  order: number;
   /** Uploaded PDFs/images/office docs attached to the lesson. */
   attachmentUrls: string[];
-  /**
-   * Group IDs allowed to see this lesson. Empty array = all groups.
-   * Students only read lessons whose assignedGroupIds is empty OR contains
-   * their own groupId.
-   */
   assignedGroupIds: string[];
   createdAt: Timestamp;
 }

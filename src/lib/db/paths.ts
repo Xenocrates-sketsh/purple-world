@@ -18,22 +18,22 @@ export const paths = {
     `exercises/${exerciseId}/submissions/${studentId}`,
   submissionsOfExercise: (exerciseId: string) => `exercises/${exerciseId}/submissions`,
   announcements: (id: string) => `announcements/${id}`,
-  programUnits: (id: string) => `programUnits/${id}`,
-  programLessons: (unitId: string, lessonId: string) =>
-    `programUnits/${unitId}/lessons/${lessonId}`,
-  programLessonsOfUnit: (unitId: string) => `programUnits/${unitId}/lessons`,
+  lessonResources: (id: string) => `lessonResources/${id}`,
   conversations: (id: string) => `conversations/${id}`,
   messages: (conversationId: string, messageId: string) =>
     `conversations/${conversationId}/messages/${messageId}`,
   messagesOf: (conversationId: string) => `conversations/${conversationId}/messages`,
   participants: (conversationId: string, uid: string) =>
     `conversations/${conversationId}/participants/${uid}`,
+  participantsOf: (conversationId: string) =>
+    `conversations/${conversationId}/participants`,
   notifications: (uid: string, id: string) => `notifications/${uid}/items/${id}`,
   notificationsOf: (uid: string) => `notifications/${uid}/items`,
   notes: (studentId: string, entryId: string) => `notes/${studentId}/entries/${entryId}`,
   notesOf: (studentId: string) => `notes/${studentId}/entries`,
   invites: (code: string) => `invites/${code}`,
   arrivals: (id: string) => `arrivals/${id}`,
+  settings: (key: string) => `settings/${key}`,
 } as const;
 
 /** Identity of a Firestore doc: id + typed data. */

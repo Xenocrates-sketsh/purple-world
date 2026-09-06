@@ -1,19 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Sparkles, Wallet, MessageSquare, BookOpen, ReceiptText, GraduationCap, FileText } from "lucide-react";
-import { onSnapshot, type Query } from "firebase/firestore";
 
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@/hooks/useFirestore";
 import { useChatUnread } from "@/hooks/useChatUnread";
 import { useDoc } from "@/hooks/useFirestore";
-import { getFirestoreDb } from "@/lib/firebase";
 import { studentPaymentsQuery } from "@/lib/db/payments";
 import { studentAnnouncementsQuery } from "@/lib/db/announcements";
-import { allUnitsQuery, lessonsOfUnitQuery } from "@/lib/db/program";
+import { allLessonResourcesQuery } from "@/lib/db/lessonResources";
 import { paths } from "@/lib/db/paths";
 import { formatRelative, formatMoney } from "@/lib/format";
-import type { StudentDoc, ProgramLessonDoc, ProgramUnitDoc, PaymentDoc, AnnouncementDoc } from "@/lib/types";
+import type { StudentDoc, LessonResourceDoc, PaymentDoc, AnnouncementDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,69 +19,25 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 
 /**
- * Aggregate the most recent program lessons across all units, restricted to
- * the student's group. Subscribes to the units collection once, then opens
- * a per-unit listener for each unit and merges the results.
+ * Most recent PDF lessons, restricted to the student's group (empty
+ * assignedGroupIds = visible to all groups). Single flat query — the
+ * Firestore rule already enforces the group filter server-side.
  */
-function useRecentProgramLessons(myGroupId: string | null, limit = 4) {
-  const units = useQuery<ProgramUnitDoc>((db) => allUnitsQuery(db));
-  const [perUnit, setPerUnit] = useState<Record<string, ProgramLessonDoc[]>>({});
-
-  useEffect(() => {
-    const unsubs: (() => void)[] = [];
-    const ids = (units.docs ?? []).map((u) => u.id);
-    if (ids.length === 0) {
-      setPerUnit({});
-      return () => {};
-    }
-    const db = getFirestoreDb();
-    for (const unitId of ids) {
-      const q: Query = lessonsOfUnitQuery(db, unitId);
-      const off = onSnapshot(
-        q,
-        (snap) => {
-          setPerUnit((prev) => ({
-            ...prev,
-            [unitId]: snap.docs.map((d) => d.data() as ProgramLessonDoc),
-          }));
-        },
-        () => {
-          setPerUnit((prev) => ({ ...prev, [unitId]: [] }));
-        }
-      );
-      unsubs.push(off);
-    }
-    return () => {
-      unsubs.forEach((u) => u());
-    };
-  }, [units.docs]);
+function useRecentLessonResources(myGroupId: string | null, limit = 4) {
+  const lessons = useQuery<LessonResourceDoc>((db) => allLessonResourcesQuery(db));
 
   const visible = useMemo(() => {
-    const flat: { unitId: string; data: ProgramLessonDoc }[] = [];
-    for (const [unitId, lessons] of Object.entries(perUnit)) {
-      for (const data of lessons) {
-        const g = data.assignedGroupIds ?? [];
-        if (g.length === 0 || (myGroupId && g.includes(myGroupId))) {
-          flat.push({ unitId, data });
-        }
-      }
-    }
-    return flat
+    const flat = (lessons.docs ?? [])
+      .filter((l) => {
+        const g = l.data.assignedGroupIds ?? [];
+        return g.length === 0 || (!!myGroupId && g.includes(myGroupId));
+      })
       .sort((a, b) => (b.data.createdAt?.toMillis?.() ?? 0) - (a.data.createdAt?.toMillis?.() ?? 0))
       .slice(0, limit);
-  }, [perUnit, myGroupId, limit]);
+    return flat;
+  }, [lessons.docs, myGroupId, limit]);
 
-  const loading = units.loading || (
-    (units.docs?.length ?? 0) > 0 && Object.keys(perUnit).length < (units.docs?.length ?? 0)
-  );
-
-  const unitTitleById = useMemo(() => {
-    const m: Record<string, string> = {};
-    for (const u of units.docs ?? []) m[u.id] = u.data.title;
-    return m;
-  }, [units.docs]);
-
-  return { loading, lessons: visible, unitTitleById };
+  return { loading: lessons.loading, lessons: visible };
 }
 
 export function StudentDashboardPage() {
@@ -106,7 +60,7 @@ export function StudentDashboardPage() {
   );
   const { unreadCount, unreadCountLoading } = useChatUnread(uid);
 
-  const newLessons = useRecentProgramLessons(groupId || null, 4);
+  const newLessons = useRecentLessonResources(groupId || null, 4);
 
   const unpaid = (payments.docs ?? []).filter((p) => p.data.status === "due");
   const unpaidTotal = unpaid.reduce((sum, p) => sum + (p.data.amount ?? 0), 0);
@@ -185,7 +139,7 @@ export function StudentDashboardPage() {
                 title="New lessons"
                 description="Just dropped in by your teacher"
                 action={
-                  <Link to="/student/program" className="text-xs font-medium text-primary hover:underline">
+                  <Link to="/student/lessons" className="text-xs font-medium text-primary hover:underline">
                     View all
                   </Link>
                 }
@@ -203,11 +157,10 @@ export function StudentDashboardPage() {
                   <ul className="divide-y divide-border">
                     {newLessons.lessons.map((row) => {
                       const fileCount = row.data.attachmentUrls?.length ?? 0;
-                      const unitLabel = newLessons.unitTitleById[row.unitId];
                       return (
-                        <li key={`${row.unitId}:${row.id}`}>
+                        <li key={row.id}>
                           <Link
-                            to="/student/program"
+                            to="/student/lessons"
                             className="flex items-start gap-3 py-3 transition-colors hover:bg-surface-muted/50"
                           >
                             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
@@ -216,13 +169,14 @@ export function StudentDashboardPage() {
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-semibold text-foreground">{row.data.title}</p>
                               <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                                {unitLabel ? <span>{unitLabel}</span> : null}
                                 {fileCount > 0 ? (
                                   <span className="inline-flex items-center gap-1">
                                     <FileText className="h-3 w-3" aria-hidden />
                                     {fileCount} PDF
                                   </span>
-                                ) : null}
+                                ) : (
+                                  <span>No file yet</span>
+                                )}
                               </p>
                             </div>
                             <span className="shrink-0 text-xs text-muted-foreground">

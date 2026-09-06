@@ -8,6 +8,7 @@ import {
   GraduationCap,
   CalendarDays,
   UserRoundCheck,
+  BookOpen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -34,7 +35,7 @@ export const teacherSecondaryNav: NavItem[] = [
   { to: "/teacher/grades", label: "Grades", icon: ClipboardList },
   { to: "/teacher/exercises", label: "Exercises", icon: ClipboardList },
   { to: "/teacher/announcements", label: "Announcements", icon: Megaphone },
-  { to: "/teacher/program", label: "Program", icon: CalendarDays },
+  { to: "/teacher/lessons", label: "Lessons", icon: BookOpen },
   { to: "/teacher/settings", label: "Settings", icon: Bell },
 ];
 
@@ -49,7 +50,7 @@ export const studentPrimaryNav: NavItem[] = [
 export const studentSecondaryNav: NavItem[] = [
   { to: "/student/group", label: "My Group", icon: CalendarClock },
   { to: "/student/payments", label: "Payments", icon: Wallet },
-  { to: "/student/program", label: "Program", icon: CalendarDays },
+  { to: "/student/lessons", label: "Lessons", icon: BookOpen },
   { to: "/student/profile", label: "Profile", icon: GraduationCap },
   { to: "/student/settings", label: "Settings", icon: Bell },
 ];
