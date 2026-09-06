@@ -11,12 +11,16 @@ import {
 import {
   onAuthStateChanged,
   getIdTokenResult,
+  linkWithCredential,
+  EmailAuthProvider,
+  fetchSignInMethodsForEmail,
   type User,
 } from "firebase/auth";
 import {
   doc,
   getDoc,
   onSnapshot,
+  updateDoc,
 } from "firebase/firestore";
 
 import { getFirebaseAuth, getFirestoreDb, initFirebase } from "./firebase";
@@ -95,10 +99,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         doc(db, "users", firebaseUser.uid),
         (snap) => {
           if (snap.exists()) {
-            setUserDoc(snap.data() as UserDoc);
+            const data = snap.data() as UserDoc;
+            setUserDoc(data);
             if (!role) {
-              const r = snap.data().role as Role | undefined;
+              const r = data.role as Role | undefined;
               if (r === "teacher" || r === "student") setRole(r);
+            }
+            // Self-heal: keep users/{uid}.groupId in sync with the linked
+            // students/{studentId}.groupId. The group-scoped Firestore rules
+            // AND every group filter in the app read groupId from the users
+            // doc, so a stale/missing value silently hides lessons, schedule
+            // and group content. Only writes when different (no loop).
+            if (data.studentId) {
+              void (async () => {
+                try {
+                  const sSnap = await getDoc(doc(db, "students", data.studentId as string));
+                  if (!sSnap.exists()) return;
+                  const sGroup = (sSnap.data() as { groupId?: unknown }).groupId ?? null;
+                  const uGroup = (data.groupId as unknown) ?? null;
+                  if (sGroup !== uGroup) {
+                    await updateDoc(doc(db, "users", firebaseUser.uid), {
+                      groupId: sGroup,
+                    });
+                  }
+                } catch {
+                  // offline / permissions — leave it; next snapshot retries
+                }
+              })();
             }
           } else {
             setUserDoc(null);
@@ -175,4 +202,30 @@ export async function resolveRoleAfterLogin(): Promise<Role | null> {
   }
 
   return null;
+}
+
+/**
+ * Attach an email/password credential to the currently signed-in user.
+ * Students who signed up via magic link have no password yet; linking one lets
+ * them sign in with email + password afterwards (no new email link needed).
+ */
+export async function linkPasswordToCurrentUser(password: string): Promise<void> {
+  const auth = getFirebaseAuth();
+  const user = auth.currentUser;
+  if (!user?.email) throw new Error("No signed-in account to attach a password to.");
+  await linkWithCredential(user, EmailAuthProvider.credential(user.email, password));
+}
+
+/**
+ * The sign-in methods an email supports, e.g. ["emailLink"] or
+ * ["emailLink", "password"]. Falls back to [] on transient errors so callers
+ * can decide their own UX.
+ */
+export async function signInMethodsForEmail(email: string): Promise<string[]> {
+  const auth = getFirebaseAuth();
+  try {
+    return await fetchSignInMethodsForEmail(auth, email);
+  } catch {
+    return [];
+  }
 }
