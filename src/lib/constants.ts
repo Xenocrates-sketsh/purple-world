@@ -7,6 +7,25 @@ import type {
   NotificationType,
 } from "./types";
 
+import appleSvg from "@/assets/avatars/apple.svg";
+import bananaSvg from "@/assets/avatars/banana.svg";
+import orangeSvg from "@/assets/avatars/orange.svg";
+import lemonSvg from "@/assets/avatars/lemon.svg";
+import grapesSvg from "@/assets/avatars/grapes.svg";
+import watermelonSvg from "@/assets/avatars/watermelon.svg";
+import strawberrySvg from "@/assets/avatars/strawberry.svg";
+import mangoSvg from "@/assets/avatars/mango.svg";
+import pineappleSvg from "@/assets/avatars/pineapple.svg";
+import kiwiSvg from "@/assets/avatars/kiwi.svg";
+import cherrySvg from "@/assets/avatars/cherry.svg";
+import blueberrySvg from "@/assets/avatars/blueberry.svg";
+import carrotSvg from "@/assets/avatars/carrot.svg";
+import broccoliSvg from "@/assets/avatars/broccoli.svg";
+import cornSvg from "@/assets/avatars/corn.svg";
+import avocadoSvg from "@/assets/avatars/avocado.svg";
+import cucumberSvg from "@/assets/avatars/cucumber.svg";
+import pepperSvg from "@/assets/avatars/pepper.svg";
+
 export const ATTENDANCE_STATUSES: {
   value: AttendanceStatus;
   label: string;
@@ -101,3 +120,37 @@ export const GRADE_SCALE = 20;
 export const PENDING_INVITE_TTL_DAYS = 14;
 
 export const INVITE_CODE_LENGTH = 20;
+
+/**
+ * Preset avatars for students. The `img` field is the bundled SVG (Twemoji,
+ * CC-BY 4.0) inlined as a data URI — no runtime network, no storage uploads.
+ * `emoji` is a fallback glyph when an image can't render. The `key` is what we
+ * persist (users/avatarKey, students/avatarKey).
+ */
+export const FRUIT_AVATARS: { key: string; emoji: string; label: string; img: string }[] = [
+  { key: "apple", emoji: "🍎", label: "Apple", img: appleSvg },
+  { key: "banana", emoji: "🍌", label: "Banana", img: bananaSvg },
+  { key: "orange", emoji: "🍊", label: "Orange", img: orangeSvg },
+  { key: "lemon", emoji: "🍋", label: "Lemon", img: lemonSvg },
+  { key: "grapes", emoji: "🍇", label: "Grapes", img: grapesSvg },
+  { key: "watermelon", emoji: "🍉", label: "Watermelon", img: watermelonSvg },
+  { key: "strawberry", emoji: "🍓", label: "Strawberry", img: strawberrySvg },
+  { key: "mango", emoji: "🥭", label: "Mango", img: mangoSvg },
+  { key: "pineapple", emoji: "🍍", label: "Pineapple", img: pineappleSvg },
+  { key: "kiwi", emoji: "🥝", label: "Kiwi", img: kiwiSvg },
+  { key: "cherry", emoji: "🍒", label: "Cherry", img: cherrySvg },
+  { key: "blueberry", emoji: "🫐", label: "Blueberry", img: blueberrySvg },
+  { key: "carrot", emoji: "🥕", label: "Carrot", img: carrotSvg },
+  { key: "broccoli", emoji: "🥦", label: "Broccoli", img: broccoliSvg },
+  { key: "corn", emoji: "🌽", label: "Corn", img: cornSvg },
+  { key: "avocado", emoji: "🥑", label: "Avocado", img: avocadoSvg },
+  { key: "cucumber", emoji: "🥒", label: "Cucumber", img: cucumberSvg },
+  { key: "pepper", emoji: "🫑", label: "Pepper", img: pepperSvg },
+];
+
+export const fruitAvatarByKey = (key: string | null | undefined) =>
+  FRUIT_AVATARS.find((a) => a.key === key) ?? null;
+
+/** The bundled SVG image for a fruit key (data URI), or null if unknown. */
+export const fruitAvatarSrc = (key: string | null | undefined) =>
+  fruitAvatarByKey(key)?.img ?? null;
