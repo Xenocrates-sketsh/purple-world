@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, BookOpen, FileText, ExternalLink } from "lucide-react";
 
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@/hooks/useFirestore";
 import { allLessonResourcesQuery } from "@/lib/db/lessonResources";
+import { pingLessonsDiagnostic } from "@/lib/db/diagnostics";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -21,10 +22,34 @@ function attachmentName(url: string): string {
 }
 
 export function StudentLessonsPage() {
-  const { userDoc } = useAuth();
+  const { user, userDoc } = useAuth();
   const myGroupId = userDoc?.groupId ?? null;
   const lessons = useQuery<LessonResourceDoc>(allLessonResourcesQuery);
   const [openId, setOpenId] = useState<string | null>(null);
+
+  // TEMPORARY diagnostic ping — reports what this client actually saw so we
+  // can diagnose the empty-list report. Fires once when the query settles.
+  // REMOVE after diagnosis (see db/diagnostics.ts).
+  const pinged = useRef(false);
+  const visibleCount = (lessons.docs ?? []).filter((l) => {
+    const g = l.data.assignedGroupIds ?? [];
+    return g.length === 0 || (!!myGroupId && g.includes(myGroupId));
+  }).length;
+  useEffect(() => {
+    if (pinged.current || lessons.loading || !user) return;
+    pinged.current = true;
+    void pingLessonsDiagnostic({
+      uid: user.uid,
+      page: "student-lessons",
+      groupIdSeen: myGroupId,
+      studentIdSeen: userDoc?.studentId ?? null,
+      returned: lessons.docs?.length ?? null,
+      visible: visibleCount,
+      errorCode: String((lessons.error as { code?: unknown })?.code ?? (lessons.error ? "unknown" : null) ?? null),
+      bundle: document.documentElement.dataset.build ?? "unknown",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lessons.loading]);
 
   const visible = useMemo(() => {
     const docs = (lessons.docs ?? []).filter((l) => {
