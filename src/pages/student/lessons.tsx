@@ -42,12 +42,12 @@ export function StudentLessonsPage() {
         title="Lessons"
         description="PDF lessons from your teacher — open any file to read or download."
       />
-      {lessons.loading ? (
-        <SkeletonList count={3} />
-      ) : lessons.error ? (
+      {lessons.error ? (
         <p className="rounded-xl bg-danger-soft px-3 py-2.5 text-xs text-danger">
-          Couldn't load lessons — check your connection and pull to refresh. If it persists, tell your teacher.
+          Couldn't load lessons ({String((lessons.error as { code?: unknown })?.code ?? "unknown")}) — check your connection and pull to refresh. If it persists, tell your teacher.
         </p>
+      ) : lessons.loading ? (
+        <SkeletonList count={3} />
       ) : visible.length === 0 ? (
         <EmptyState
           icon={BookOpen}

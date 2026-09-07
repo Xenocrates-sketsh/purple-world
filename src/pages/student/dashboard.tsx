@@ -145,12 +145,12 @@ export function StudentDashboardPage() {
                 }
               />
               <CardContent>
-                {newLessons.loading ? (
-                  <SkeletonList count={2} />
-                ) : newLessons.error ? (
+                {newLessons.error ? (
                   <p className="rounded-xl bg-danger-soft px-3 py-2.5 text-xs text-danger">
-                    Couldn't load new lessons — check your connection and pull to refresh. If it persists, tell your teacher.
+                    Couldn't load new lessons ({String((newLessons.error as { code?: unknown })?.code ?? "unknown")}) — check your connection and pull to refresh. If it persists, tell your teacher.
                   </p>
+                ) : newLessons.loading ? (
+                  <SkeletonList count={2} />
                 ) : newLessons.lessons.length === 0 ? (
                   <EmptyState
                     icon={Sparkles}
