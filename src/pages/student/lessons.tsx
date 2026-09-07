@@ -44,6 +44,10 @@ export function StudentLessonsPage() {
       />
       {lessons.loading ? (
         <SkeletonList count={3} />
+      ) : lessons.error ? (
+        <p className="rounded-xl bg-danger-soft px-3 py-2.5 text-xs text-danger">
+          Couldn't load lessons — check your connection and pull to refresh. If it persists, tell your teacher.
+        </p>
       ) : visible.length === 0 ? (
         <EmptyState
           icon={BookOpen}

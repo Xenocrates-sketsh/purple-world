@@ -20,7 +20,6 @@ import {
   doc,
   getDoc,
   onSnapshot,
-  updateDoc,
 } from "firebase/firestore";
 
 import { getFirebaseAuth, getFirestoreDb, initFirebase } from "./firebase";
@@ -94,7 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Mirror the user profile doc so clients can read studentId/groupId/
-      // displayName in real time.
+      // displayName in real time. NOTE: groupId sync lives teacher-side in
+      // setStudentGroup (db/students.ts) — students are rules-denied from
+      // writing their own groupId, so a client self-heal here can never fire.
       const unsubDoc = onSnapshot(
         doc(db, "users", firebaseUser.uid),
         (snap) => {
@@ -104,28 +105,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (!role) {
               const r = data.role as Role | undefined;
               if (r === "teacher" || r === "student") setRole(r);
-            }
-            // Self-heal: keep users/{uid}.groupId in sync with the linked
-            // students/{studentId}.groupId. The group-scoped Firestore rules
-            // AND every group filter in the app read groupId from the users
-            // doc, so a stale/missing value silently hides lessons, schedule
-            // and group content. Only writes when different (no loop).
-            if (data.studentId) {
-              void (async () => {
-                try {
-                  const sSnap = await getDoc(doc(db, "students", data.studentId as string));
-                  if (!sSnap.exists()) return;
-                  const sGroup = (sSnap.data() as { groupId?: unknown }).groupId ?? null;
-                  const uGroup = (data.groupId as unknown) ?? null;
-                  if (sGroup !== uGroup) {
-                    await updateDoc(doc(db, "users", firebaseUser.uid), {
-                      groupId: sGroup,
-                    });
-                  }
-                } catch {
-                  // offline / permissions — leave it; next snapshot retries
-                }
-              })();
             }
           } else {
             setUserDoc(null);

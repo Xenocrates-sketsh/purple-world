@@ -12,11 +12,13 @@ import {
   UserPlus,
   CreditCard,
   GitBranch,
+  Ban,
+  ShieldCheck,
 } from "lucide-react";
 
 import { useAuth } from "@/lib/auth";
 import { useQuery, useDoc, useDocMap } from "@/hooks/useFirestore";
-import { updateStudent, setStudentGroup } from "@/lib/db/students";
+import { updateStudent, setStudentGroup, setStudentBlocked } from "@/lib/db/students";
 import { allGroupsQuery } from "@/lib/db/groups";
 import { studentPaymentsQuery } from "@/lib/db/payments";
 import { allAssessmentsQuery, studentResultsQuery } from "@/lib/db/assessments";
@@ -59,6 +61,8 @@ export function TeacherStudentDetailPage() {
   const [noteText, setNoteText] = useState("");
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [blockOpen, setBlockOpen] = useState(false);
+  const [blocking, setBlocking] = useState(false);
 
   const [form, setForm] = useState<{
     name: string;
@@ -117,7 +121,7 @@ export function TeacherStudentDetailPage() {
 
   async function onGroupChange(groupId: string) {
     try {
-      await setStudentGroup(studentId, groupId || null);
+      await setStudentGroup(studentId, groupId || null, data?.linkedUid ?? null);
       toast(groupId ? "Group updated" : "Removed from group", { variant: "success" });
     } catch {
       toast("Could not change group", { variant: "error" });
@@ -168,6 +172,20 @@ export function TeacherStudentDetailPage() {
     }
   }
 
+  async function onToggleBlock() {
+    if (!data) return;
+    setBlocking(true);
+    try {
+      await setStudentBlocked(studentId, data.linkedUid, !data.blocked);
+      toast(data.blocked ? "Student unblocked" : "Student blocked", { variant: "success" });
+      setBlockOpen(false);
+    } catch {
+      toast("Could not update the block status", { variant: "error" });
+    } finally {
+      setBlocking(false);
+    }
+  }
+
   if (student.loading) {
     return (
       <div className="space-y-4">
@@ -204,9 +222,11 @@ export function TeacherStudentDetailPage() {
             <Button variant="secondary" onClick={() => setEditOpen(true)} leftIcon={<Pencil className="h-4 w-4" aria-hidden />}>
               Edit profile
             </Button>
-            <Button onClick={() => setInviteOpen(true)} leftIcon={<UserPlus className="h-4 w-4" aria-hidden />}>
-              Create account
-            </Button>
+            {data.linkedUid == null ? (
+              <Button onClick={() => setInviteOpen(true)} leftIcon={<UserPlus className="h-4 w-4" aria-hidden />}>
+                Create account
+              </Button>
+            ) : null}
           </div>
         }
       />
@@ -218,6 +238,7 @@ export function TeacherStudentDetailPage() {
           <Badge variant="warning">Account not created yet</Badge>
         )}
         <Badge variant={data.active ? "primary" : "neutral"}>{data.active ? "Active" : "Inactive"}</Badge>
+        {data.blocked ? <Badge variant="danger">Blocked</Badge> : null}
         <Select
           aria-label="Group"
           className="h-9 w-auto py-0 text-sm"
@@ -408,6 +429,23 @@ export function TeacherStudentDetailPage() {
               >
                 New payment
               </Button>
+              {data.blocked ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => setBlockOpen(true)}
+                  leftIcon={<ShieldCheck className="h-4 w-4" aria-hidden />}
+                >
+                  Unblock student
+                </Button>
+              ) : (
+                <Button
+                  variant="danger"
+                  onClick={() => setBlockOpen(true)}
+                  leftIcon={<Ban className="h-4 w-4" aria-hidden />}
+                >
+                  Block student
+                </Button>
+              )}
             </CardContent>
           </Card>
 
@@ -473,20 +511,33 @@ export function TeacherStudentDetailPage() {
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
         title="Create student account"
-        description="Student accounts are created by the teacher, not by open sign-up. Run this on your computer:"
+        description="Student accounts are created once by the admin — there is no open sign-up in this app."
         footer={
           <Button variant="ghost" onClick={() => setInviteOpen(false)}>Close</Button>
         }
       >
-        <div className="space-y-3">
-          <Field label="Name" hint={`Student id: ${studentId}`}>
-            <code className="block select-all rounded-lg bg-surface-muted px-3 py-2 font-mono text-sm text-foreground">
-              node --experimental-strip-types scripts/create-student.ts \
-                --name "{data?.name ?? "Student Name"}" \
-                --email student@example.com --password "change-me" \
-                --student-id {studentId}
+        <div className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            <span className="font-semibold text-foreground">1.</span> Ask the admin to
+            create the login for <span className="font-semibold text-foreground">{data?.name ?? "this student"}</span>{" "}
+            (student id: <span className="font-mono text-xs">{studentId}</span>).
+          </p>
+          <p>
+            <span className="font-semibold text-foreground">2.</span> Give the student
+            their email and temporary password.
+          </p>
+          <p>
+            <span className="font-semibold text-foreground">3.</span> They sign in on
+            the login page and change the password afterwards.
+          </p>
+          <details className="rounded-xl border border-border bg-surface-muted px-3 py-2">
+            <summary className="cursor-pointer text-xs font-medium text-foreground">
+              Show admin command
+            </summary>
+            <code className="mt-2 block select-all whitespace-pre-wrap break-all font-mono text-xs text-foreground">
+              node --experimental-strip-types scripts/create-student.ts --name "{data?.name ?? "Student Name"}" --email student@example.com --password "change-me" --student-id {studentId}
             </code>
-          </Field>
+          </details>
         </div>
       </Modal>
 
@@ -507,6 +558,33 @@ export function TeacherStudentDetailPage() {
             <Textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} rows={4} placeholder="Homework habits, strengths, next steps…" />
           </Field>
         </form>
+      </Modal>
+
+      <Modal
+        open={blockOpen}
+        onClose={() => setBlockOpen(false)}
+        title={data.blocked ? "Unblock this student?" : "Block this student?"}
+        description={
+          data.blocked
+            ? `${data.name} will regain access to the app and chat right away.`
+            : `${data.name} will be locked out of the app immediately and will not be able to send chat messages until you unblock them. Their data stays intact.`
+        }
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setBlockOpen(false)}>Cancel</Button>
+            <Button
+              variant={data.blocked ? "primary" : "danger"}
+              loading={blocking}
+              onClick={onToggleBlock}
+            >
+              {data.blocked ? "Unblock" : "Block"}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          {data.blocked ? "Confirm unblock." : "This cannot be undone except by unblocking again."}
+        </p>
       </Modal>
     </div>
   );

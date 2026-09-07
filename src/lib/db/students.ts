@@ -7,6 +7,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
 } from "firebase/firestore";
 import type { Firestore } from "firebase/firestore";
 
@@ -49,9 +50,41 @@ export async function setStudentActive(studentId: string, active: boolean) {
   await updateDoc(doc(db, paths.students(studentId)), { active });
 }
 
-export async function setStudentGroup(studentId: string, groupId: string | null) {
+/** Lock a student out of the app (and their linked account's users doc so
+ *  the auth gate reacts immediately). */
+export async function setStudentBlocked(
+  studentId: string,
+  linkedUid: string | null,
+  blocked: boolean
+) {
   const db = getFirestoreDb();
-  await updateDoc(doc(db, paths.students(studentId)), { groupId });
+  const batch = writeBatch(db);
+  batch.update(doc(db, paths.students(studentId)), { blocked });
+  if (linkedUid) {
+    batch.update(doc(db, "users", linkedUid), { blocked });
+  }
+  await batch.commit();
+}
+
+/**
+ * Move a student to a group (or remove them with null) and mirror the group
+ * onto their linked login doc, so group-scoped rules and filters keep
+ * working. Teacher-initiated, so the users-doc write is rules-allowed —
+ * same pattern as setStudentBlocked below. Students can never write their
+ * own groupId (privilege escalation), hence no client self-heal here.
+ */
+export async function setStudentGroup(
+  studentId: string,
+  groupId: string | null,
+  linkedUid: string | null
+) {
+  const db = getFirestoreDb();
+  const batch = writeBatch(db);
+  batch.update(doc(db, paths.students(studentId)), { groupId });
+  if (linkedUid) {
+    batch.update(doc(db, "users", linkedUid), { groupId });
+  }
+  await batch.commit();
 }
 
 export async function setStudentLinkedUid(studentId: string, uid: string) {

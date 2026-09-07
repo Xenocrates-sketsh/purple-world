@@ -37,7 +37,7 @@ function useRecentLessonResources(myGroupId: string | null, limit = 4) {
     return flat;
   }, [lessons.docs, myGroupId, limit]);
 
-  return { loading: lessons.loading, lessons: visible };
+  return { loading: lessons.loading, lessons: visible, error: lessons.error };
 }
 
 export function StudentDashboardPage() {
@@ -147,6 +147,10 @@ export function StudentDashboardPage() {
               <CardContent>
                 {newLessons.loading ? (
                   <SkeletonList count={2} />
+                ) : newLessons.error ? (
+                  <p className="rounded-xl bg-danger-soft px-3 py-2.5 text-xs text-danger">
+                    Couldn't load new lessons — check your connection and pull to refresh. If it persists, tell your teacher.
+                  </p>
                 ) : newLessons.lessons.length === 0 ? (
                   <EmptyState
                     icon={Sparkles}
