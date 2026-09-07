@@ -1,20 +1,21 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, Wallet, MessageSquare, BookOpen, ReceiptText, GraduationCap, FileText } from "lucide-react";
+import { Sparkles, Wallet, MessageSquare, BookOpen, ReceiptText, GraduationCap, FileText, CalendarClock } from "lucide-react";
 
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@/hooks/useFirestore";
 import { useChatUnread } from "@/hooks/useChatUnread";
 import { useDoc } from "@/hooks/useFirestore";
 import { studentPaymentsQuery } from "@/lib/db/payments";
+import { lessonsByGroupQuery } from "@/lib/db/schedule";
 import { studentAnnouncementsQuery } from "@/lib/db/announcements";
 import {
   allGroupsLessonResourcesQuery,
   groupLessonResourcesQuery,
 } from "@/lib/db/lessonResources";
 import { paths } from "@/lib/db/paths";
-import { formatRelative, formatMoney } from "@/lib/format";
-import type { StudentDoc, LessonResourceDoc, PaymentDoc, AnnouncementDoc } from "@/lib/types";
+import { formatRelative, formatMoney, formatTime, formatDateShort, toDate } from "@/lib/format";
+import type { StudentDoc, LessonResourceDoc, LessonDoc, PaymentDoc, AnnouncementDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +76,24 @@ export function StudentDashboardPage() {
   const { unreadCount, unreadCountLoading } = useChatUnread(uid);
 
   const newLessons = useRecentLessonResources(groupId || null, 4);
+
+  // Dated schedule classes for the student's group. Rule-provable
+  // (where groupId == myGroupId) with a covering composite index.
+  const schedule = useQuery<LessonDoc>(
+    (db) => (groupId ? lessonsByGroupQuery(db, groupId) : null),
+    [groupId]
+  );
+
+  const upcoming = useMemo(() => {
+    const now = Date.now();
+    return (schedule.docs ?? [])
+      .filter((l) => {
+        const t = toDate(l.data.startsAt);
+        return t && t.getTime() + 60 * 60 * 1000 > now;
+      })
+      .sort((a, b) => toDate(a.data.startsAt)!.getTime() - toDate(b.data.startsAt)!.getTime())
+      .slice(0, 4);
+  }, [schedule.docs]);
 
   const unpaid = (payments.docs ?? []).filter((p) => p.data.status === "due");
   const unpaidTotal = unpaid.reduce((sum, p) => sum + (p.data.amount ?? 0), 0);
@@ -204,6 +223,38 @@ export function StudentDashboardPage() {
                         </li>
                       );
                     })}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader title="Upcoming classes" description="Your scheduled sessions" />
+              <CardContent>
+                {schedule.error ? (
+                  <p className="rounded-xl bg-danger-soft px-3 py-2.5 text-xs text-danger">
+                    Couldn't load classes ({String((schedule.error as { code?: unknown })?.code ?? "unknown")}) — check your connection and pull to refresh.
+                  </p>
+                ) : schedule.loading ? (
+                  <SkeletonList count={2} />
+                ) : upcoming.length === 0 ? (
+                  <EmptyState icon={CalendarClock} title="Nothing scheduled" description="Your next classes will appear here." />
+                ) : (
+                  <ul className="divide-y divide-border">
+                    {upcoming.map((l) => (
+                      <li key={l.id} className="flex items-center gap-3 py-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-sm font-bold text-primary">
+                          {formatDateShort(l.data.startsAt).split(" ")[0]}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-foreground">{l.data.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatTime(l.data.startsAt)} · {l.data.durationMin} min
+                          </p>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{formatRelative(l.data.startsAt)}</span>
+                      </li>
+                    ))}
                   </ul>
                 )}
               </CardContent>

@@ -29,18 +29,17 @@ export function allLessonResourcesQuery(db: Firestore) {
  * Single-field filters only — no composite index needed.
  */
 export function allGroupsLessonResourcesQuery(db: Firestore) {
-  return query(
-    collection(db, "lessonResources"),
-    where("assignedGroupIds", "==", []),
-    orderBy("createdAt", "desc")
-  );
+  // NOTE: no orderBy on purpose — where()+orderBy on different fields needs
+  // a composite index that doesn't exist here. Callers sort client-side.
+  // Matches rule `assignedGroupIds.size() == 0`.
+  return query(collection(db, "lessonResources"), where("assignedGroupIds", "==", []));
 }
 
 export function groupLessonResourcesQuery(db: Firestore, groupId: string) {
+  // NOTE: no orderBy (see above). Matches rule `hasAny([myGroupId()])`.
   return query(
     collection(db, "lessonResources"),
-    where("assignedGroupIds", "array-contains", groupId),
-    orderBy("createdAt", "desc")
+    where("assignedGroupIds", "array-contains", groupId)
   );
 }
 

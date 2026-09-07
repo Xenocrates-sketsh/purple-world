@@ -29,18 +29,19 @@ export function allExercisesQuery(db: Firestore) {
  * The teacher form requires at least one assignee, so no both-empty case.
  */
 export function myDirectExercisesQuery(db: Firestore, studentId: string) {
+  // NOTE: no orderBy — where()+orderBy on different fields needs a composite
+  // index that doesn't exist here. Callers sort client-side.
   return query(
     collection(db, "exercises"),
-    where("assignedStudentIds", "array-contains", studentId),
-    orderBy("createdAt", "desc")
+    where("assignedStudentIds", "array-contains", studentId)
   );
 }
 
 export function myGroupExercisesQuery(db: Firestore, groupId: string) {
+  // NOTE: no orderBy (see above).
   return query(
     collection(db, "exercises"),
-    where("assignedGroupIds", "array-contains", groupId),
-    orderBy("createdAt", "desc")
+    where("assignedGroupIds", "array-contains", groupId)
   );
 }
 
