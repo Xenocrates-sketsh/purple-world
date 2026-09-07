@@ -8,7 +8,10 @@ import { useChatUnread } from "@/hooks/useChatUnread";
 import { useDoc } from "@/hooks/useFirestore";
 import { studentPaymentsQuery } from "@/lib/db/payments";
 import { studentAnnouncementsQuery } from "@/lib/db/announcements";
-import { allLessonResourcesQuery } from "@/lib/db/lessonResources";
+import {
+  allGroupsLessonResourcesQuery,
+  groupLessonResourcesQuery,
+} from "@/lib/db/lessonResources";
 import { paths } from "@/lib/db/paths";
 import { formatRelative, formatMoney } from "@/lib/format";
 import type { StudentDoc, LessonResourceDoc, PaymentDoc, AnnouncementDoc } from "@/lib/types";
@@ -19,25 +22,36 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 
 /**
- * Most recent PDF lessons, restricted to the student's group (empty
- * assignedGroupIds = visible to all groups). Single flat query — the
- * Firestore rule already enforces the group filter server-side.
+ * Most recent PDF lessons for the student's group. Two rule-provable queries
+ * merged client-side (see db/lessonResources.ts): an unconstrained list query
+ * is denied outright because the rule depends on assignedGroupIds.
  */
 function useRecentLessonResources(myGroupId: string | null, limit = 4) {
-  const lessons = useQuery<LessonResourceDoc>((db) => allLessonResourcesQuery(db));
+  const allGroups = useQuery<LessonResourceDoc>((db) => allGroupsLessonResourcesQuery(db));
+  const myGroup = useQuery<LessonResourceDoc>(
+    (db) => (myGroupId ? groupLessonResourcesQuery(db, myGroupId) : null),
+    [myGroupId]
+  );
+
+  const merged = useMemo(() => {
+    const seen = new Map<string, NonNullable<typeof allGroups.docs>[number]>();
+    for (const d of [...(allGroups.docs ?? []), ...(myGroup.docs ?? [])]) {
+      if (!seen.has(d.id)) seen.set(d.id, d);
+    }
+    return {
+      docs: [...seen.values()],
+      loading: allGroups.loading || myGroup.loading,
+      error: allGroups.error ?? myGroup.error ?? null,
+    };
+  }, [allGroups.docs, allGroups.loading, allGroups.error, myGroup.docs, myGroup.loading, myGroup.error]);
 
   const visible = useMemo(() => {
-    const flat = (lessons.docs ?? [])
-      .filter((l) => {
-        const g = l.data.assignedGroupIds ?? [];
-        return g.length === 0 || (!!myGroupId && g.includes(myGroupId));
-      })
+    return merged.docs
       .sort((a, b) => (b.data.createdAt?.toMillis?.() ?? 0) - (a.data.createdAt?.toMillis?.() ?? 0))
       .slice(0, limit);
-    return flat;
-  }, [lessons.docs, myGroupId, limit]);
+  }, [merged.docs, limit]);
 
-  return { loading: lessons.loading, lessons: visible, error: lessons.error };
+  return { loading: merged.loading, lessons: visible, error: merged.error };
 }
 
 export function StudentDashboardPage() {

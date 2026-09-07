@@ -3,7 +3,10 @@ import { ChevronDown, BookOpen, FileText, ExternalLink } from "lucide-react";
 
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@/hooks/useFirestore";
-import { allLessonResourcesQuery } from "@/lib/db/lessonResources";
+import {
+  allGroupsLessonResourcesQuery,
+  groupLessonResourcesQuery,
+} from "@/lib/db/lessonResources";
 import { pingLessonsDiagnostic } from "@/lib/db/diagnostics";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
@@ -24,17 +27,32 @@ function attachmentName(url: string): string {
 export function StudentLessonsPage() {
   const { user, userDoc } = useAuth();
   const myGroupId = userDoc?.groupId ?? null;
-  const lessons = useQuery<LessonResourceDoc>(allLessonResourcesQuery);
+  // Two rule-provable queries merged client-side (see db/lessonResources.ts):
+  // all-groups lessons + my group's lessons. An unconstrained list query is
+  // denied outright because the rule depends on assignedGroupIds.
+  const allGroups = useQuery<LessonResourceDoc>((db) => allGroupsLessonResourcesQuery(db));
+  const myGroup = useQuery<LessonResourceDoc>(
+    (db) => (myGroupId ? groupLessonResourcesQuery(db, myGroupId) : null),
+    [myGroupId]
+  );
   const [openId, setOpenId] = useState<string | null>(null);
+
+  const lessons = useMemo(() => {
+    const seen = new Map<string, NonNullable<typeof allGroups.docs>[number]>();
+    for (const d of [...(allGroups.docs ?? []), ...(myGroup.docs ?? [])]) {
+      if (!seen.has(d.id)) seen.set(d.id, d);
+    }
+    return {
+      docs: [...seen.values()],
+      loading: allGroups.loading || myGroup.loading,
+      error: allGroups.error ?? myGroup.error ?? null,
+    };
+  }, [allGroups.docs, allGroups.loading, allGroups.error, myGroup.docs, myGroup.loading, myGroup.error]);
 
   // TEMPORARY diagnostic ping — reports what this client actually saw so we
   // can diagnose the empty-list report. Fires once when the query settles.
   // REMOVE after diagnosis (see db/diagnostics.ts).
   const pinged = useRef(false);
-  const visibleCount = (lessons.docs ?? []).filter((l) => {
-    const g = l.data.assignedGroupIds ?? [];
-    return g.length === 0 || (!!myGroupId && g.includes(myGroupId));
-  }).length;
   useEffect(() => {
     if (pinged.current || lessons.loading || !user) return;
     pinged.current = true;
@@ -44,7 +62,7 @@ export function StudentLessonsPage() {
       groupIdSeen: myGroupId,
       studentIdSeen: userDoc?.studentId ?? null,
       returned: lessons.docs?.length ?? null,
-      visible: visibleCount,
+      visible: lessons.docs?.length ?? null,
       errorCode: String((lessons.error as { code?: unknown })?.code ?? (lessons.error ? "unknown" : null) ?? null),
       bundle: document.documentElement.dataset.build ?? "unknown",
     });
@@ -52,14 +70,10 @@ export function StudentLessonsPage() {
   }, [lessons.loading]);
 
   const visible = useMemo(() => {
-    const docs = (lessons.docs ?? []).filter((l) => {
-      const g = l.data.assignedGroupIds ?? [];
-      return g.length === 0 || (!!myGroupId && g.includes(myGroupId));
-    });
-    return [...docs].sort(
+    return [...(lessons.docs ?? [])].sort(
       (a, b) => (b.data.createdAt?.toMillis?.() ?? 0) - (a.data.createdAt?.toMillis?.() ?? 0)
     );
-  }, [lessons.docs, myGroupId]);
+  }, [lessons.docs]);
 
   return (
     <div>

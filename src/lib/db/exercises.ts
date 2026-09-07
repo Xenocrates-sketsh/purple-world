@@ -21,6 +21,29 @@ export function allExercisesQuery(db: Firestore) {
   return query(collection(db, "exercises"), orderBy("createdAt", "desc"));
 }
 
+/**
+ * Student-scoped reads (same "rules are not filters" constraint as lessons:
+ * the exercises rule depends on assignedStudentIds/assignedGroupIds, so the
+ * query must constrain those fields to match). Two rule-provable queries
+ * merged client-side; single-field filters only, no composite index needed.
+ * The teacher form requires at least one assignee, so no both-empty case.
+ */
+export function myDirectExercisesQuery(db: Firestore, studentId: string) {
+  return query(
+    collection(db, "exercises"),
+    where("assignedStudentIds", "array-contains", studentId),
+    orderBy("createdAt", "desc")
+  );
+}
+
+export function myGroupExercisesQuery(db: Firestore, groupId: string) {
+  return query(
+    collection(db, "exercises"),
+    where("assignedGroupIds", "array-contains", groupId),
+    orderBy("createdAt", "desc")
+  );
+}
+
 export function submissionsOfExerciseQuery(db: Firestore, exerciseId: string) {
   return query(collection(db, paths.submissionsOfExercise(exerciseId)));
 }

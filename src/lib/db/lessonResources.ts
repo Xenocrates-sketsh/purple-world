@@ -7,6 +7,7 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import type { Firestore } from "firebase/firestore";
 
@@ -16,6 +17,31 @@ import { paths } from "./paths";
 
 export function allLessonResourcesQuery(db: Firestore) {
   return query(collection(db, "lessonResources"), orderBy("createdAt", "desc"));
+}
+
+/**
+ * Student-scoped reads. Firestore rules are NOT filters: a list query whose
+ * rule depends on `assignedGroupIds` is DENIED outright unless the query
+ * itself constrains that field to match the rule. So students read via two
+ * rule-provable queries merged client-side:
+ *  - `== []` mirrors `assignedGroupIds.size() == 0` (visible to all groups)
+ *  - `array-contains myGroupId` mirrors `hasAny([myGroupId()])`
+ * Single-field filters only — no composite index needed.
+ */
+export function allGroupsLessonResourcesQuery(db: Firestore) {
+  return query(
+    collection(db, "lessonResources"),
+    where("assignedGroupIds", "==", []),
+    orderBy("createdAt", "desc")
+  );
+}
+
+export function groupLessonResourcesQuery(db: Firestore, groupId: string) {
+  return query(
+    collection(db, "lessonResources"),
+    where("assignedGroupIds", "array-contains", groupId),
+    orderBy("createdAt", "desc")
+  );
 }
 
 export async function createLessonResource(

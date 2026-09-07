@@ -3,7 +3,12 @@ import { BookOpen, CheckCircle2, Clock, Upload, FileText, ExternalLink } from "l
 
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@/hooks/useFirestore";
-import { allExercisesQuery, studentSubmissionsQuery, upsertSubmission } from "@/lib/db/exercises";
+import {
+  myDirectExercisesQuery,
+  myGroupExercisesQuery,
+  studentSubmissionsQuery,
+  upsertSubmission,
+} from "@/lib/db/exercises";
 import { EXERCISE_CATEGORIES, EXERCISE_DIFFICULTIES } from "@/lib/constants";
 import { formatRelative } from "@/lib/format";
 import type { ExerciseDoc, SubmissionDoc } from "@/lib/types";
@@ -34,11 +39,34 @@ export function StudentExercisesPage() {
   const studentId = userDoc?.studentId ?? "";
   const groupId = userDoc?.groupId ?? "";
 
-  const exercises = useQuery<ExerciseDoc>((db) => allExercisesQuery(db));
+  // Two rule-provable queries merged client-side (see db/exercises.ts): an
+  // unconstrained list query is denied outright because the rule depends on
+  // assignedStudentIds/assignedGroupIds. The teacher form requires at least
+  // one assignee, so these two cover everything.
+  const direct = useQuery<ExerciseDoc>(
+    (db) => (studentId ? myDirectExercisesQuery(db, studentId) : null),
+    [studentId]
+  );
+  const viaGroup = useQuery<ExerciseDoc>(
+    (db) => (groupId ? myGroupExercisesQuery(db, groupId) : null),
+    [groupId]
+  );
   const submissions = useQuery<SubmissionDoc>(
     (db) => (studentId ? studentSubmissionsQuery(db, studentId) : null),
     [studentId]
   );
+
+  const exercises = useMemo(() => {
+    const seen = new Map<string, NonNullable<typeof direct.docs>[number]>();
+    for (const d of [...(direct.docs ?? []), ...(viaGroup.docs ?? [])]) {
+      if (!seen.has(d.id)) seen.set(d.id, d);
+    }
+    return {
+      docs: [...seen.values()],
+      loading: direct.loading || viaGroup.loading,
+      error: direct.error ?? viaGroup.error ?? null,
+    };
+  }, [direct.docs, direct.loading, direct.error, viaGroup.docs, viaGroup.loading, viaGroup.error]);
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [content, setContent] = useState("");
@@ -111,6 +139,10 @@ export function StudentExercisesPage() {
           title="No exercises yet"
           description="Once your account is linked to your student record, assigned work appears here."
         />
+      ) : exercises.error ? (
+        <p className="rounded-xl bg-danger-soft px-3 py-2.5 text-xs text-danger">
+          Couldn't load exercises ({String((exercises.error as { code?: unknown })?.code ?? "unknown")}) — check your connection and pull to refresh. If it persists, tell your teacher.
+        </p>
       ) : exercises.loading ? (
         <SkeletonList count={4} />
       ) : sorted.length === 0 ? (
