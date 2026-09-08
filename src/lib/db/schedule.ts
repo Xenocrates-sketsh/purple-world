@@ -24,11 +24,9 @@ export function allLessonsQuery(db: Firestore) {
 }
 
 export function lessonsByGroupQuery(db: Firestore, groupId: string) {
-  return query(
-    collection(db, "lessons"),
-    where("groupId", "==", groupId),
-    orderBy("startsAt", "desc")
-  );
+  // NOTE: no orderBy — where()+orderBy on different fields needs a composite
+  // index that doesn't exist here. Callers sort client-side.
+  return query(collection(db, "lessons"), where("groupId", "==", groupId));
 }
 
 export async function createLesson(data: Omit<LessonDoc, "createdAt">) {

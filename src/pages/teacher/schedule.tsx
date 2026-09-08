@@ -68,7 +68,10 @@ export function TeacherSchedulePage() {
       entry.items.sort((a, b) => a.data.startsAt.toMillis() - b.data.startsAt.toMillis());
       map.set(key, entry);
     }
-    return [...map.values()];
+    // Newest day first (the query has no orderBy — see db/schedule.ts).
+    return [...map.values()].sort(
+      (a, b) => b.items[0].data.startsAt.toMillis() - a.items[0].data.startsAt.toMillis()
+    );
   }, [lessons.docs]);
 
   function openCreate() {
