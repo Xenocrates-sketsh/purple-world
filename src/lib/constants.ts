@@ -7,18 +7,30 @@ import type {
   NotificationType,
 } from "./types";
 
-import appleSvg from "@/assets/avatars/apple.svg";
-import bananaSvg from "@/assets/avatars/banana.svg";
-import orangeSvg from "@/assets/avatars/orange.svg";
-import lemonSvg from "@/assets/avatars/lemon.svg";
-import grapesSvg from "@/assets/avatars/grapes.svg";
-import watermelonSvg from "@/assets/avatars/watermelon.svg";
-import strawberrySvg from "@/assets/avatars/strawberry.svg";
-import mangoSvg from "@/assets/avatars/mango.svg";
-import pineappleSvg from "@/assets/avatars/pineapple.svg";
-import kiwiSvg from "@/assets/avatars/kiwi.svg";
+import applePng from "@/assets/fruits/apple.png";
+import bananaPng from "@/assets/fruits/banana.png";
+import grapesPng from "@/assets/fruits/grapes.png";
+import orangePng from "@/assets/fruits/orange.png";
+import watermelonPng from "@/assets/fruits/watermelon.png";
+import pineapplePng from "@/assets/fruits/pineapple.png";
+import strawberryPng from "@/assets/fruits/strawberry.png";
+import blueberryPng from "@/assets/fruits/blueberry.png";
+import lemonPng from "@/assets/fruits/lemon.png";
+import kiwiPng from "@/assets/fruits/kiwi.png";
+import pearPng from "@/assets/fruits/pear.png";
+import peachPng from "@/assets/fruits/peach.png";
+import cherriesPng from "@/assets/fruits/cherries.png";
+import coconutPng from "@/assets/fruits/coconut.png";
+import pomegranatePng from "@/assets/fruits/pomegranate.png";
+import mangoPng from "@/assets/fruits/mango.png";
+import greengrapesPng from "@/assets/fruits/greengrapes.png";
+import figPng from "@/assets/fruits/fig.png";
+import raspberryPng from "@/assets/fruits/raspberry.png";
+import apricotPng from "@/assets/fruits/apricot.png";
+// Legacy SVG set — kept ONLY so older avatarKey picks (carrot, broccoli,
+// corn, avocado, cucumber, pepper, cherry) still resolve instead of
+// breaking. Never shown in the picker.
 import cherrySvg from "@/assets/avatars/cherry.svg";
-import blueberrySvg from "@/assets/avatars/blueberry.svg";
 import carrotSvg from "@/assets/avatars/carrot.svg";
 import broccoliSvg from "@/assets/avatars/broccoli.svg";
 import cornSvg from "@/assets/avatars/corn.svg";
@@ -122,24 +134,37 @@ export const PENDING_INVITE_TTL_DAYS = 14;
 export const INVITE_CODE_LENGTH = 20;
 
 /**
- * Preset avatars for students. The `img` field is the bundled SVG (Twemoji,
- * CC-BY 4.0) inlined as a data URI — no runtime network, no storage uploads.
- * `emoji` is a fallback glyph when an image can't render. The `key` is what we
- * persist (users/avatarKey, students/avatarKey).
+ * Preset avatars for students. The `img` field is a bundled PNG (kawaii fruit
+ * set, cropped from the teacher-supplied sheet) — no runtime network, no
+ * storage uploads. `emoji` is a fallback glyph when an image can't render.
+ * The `key` is what we persist (users/avatarKey, students/avatarKey).
  */
 export const FRUIT_AVATARS: { key: string; emoji: string; label: string; img: string }[] = [
-  { key: "apple", emoji: "🍎", label: "Apple", img: appleSvg },
-  { key: "banana", emoji: "🍌", label: "Banana", img: bananaSvg },
-  { key: "orange", emoji: "🍊", label: "Orange", img: orangeSvg },
-  { key: "lemon", emoji: "🍋", label: "Lemon", img: lemonSvg },
-  { key: "grapes", emoji: "🍇", label: "Grapes", img: grapesSvg },
-  { key: "watermelon", emoji: "🍉", label: "Watermelon", img: watermelonSvg },
-  { key: "strawberry", emoji: "🍓", label: "Strawberry", img: strawberrySvg },
-  { key: "mango", emoji: "🥭", label: "Mango", img: mangoSvg },
-  { key: "pineapple", emoji: "🍍", label: "Pineapple", img: pineappleSvg },
-  { key: "kiwi", emoji: "🥝", label: "Kiwi", img: kiwiSvg },
+  { key: "apple", emoji: "🍎", label: "Apple", img: applePng },
+  { key: "banana", emoji: "🍌", label: "Banana", img: bananaPng },
+  { key: "grapes", emoji: "🍇", label: "Grapes", img: grapesPng },
+  { key: "orange", emoji: "🍊", label: "Orange", img: orangePng },
+  { key: "watermelon", emoji: "🍉", label: "Watermelon", img: watermelonPng },
+  { key: "pineapple", emoji: "🍍", label: "Pineapple", img: pineapplePng },
+  { key: "strawberry", emoji: "🍓", label: "Strawberry", img: strawberryPng },
+  { key: "blueberry", emoji: "🫐", label: "Blueberry", img: blueberryPng },
+  { key: "lemon", emoji: "🍋", label: "Lemon", img: lemonPng },
+  { key: "kiwi", emoji: "🥝", label: "Kiwi", img: kiwiPng },
+  { key: "pear", emoji: "🍐", label: "Pear", img: pearPng },
+  { key: "peach", emoji: "🍑", label: "Peach", img: peachPng },
+  { key: "cherries", emoji: "🍒", label: "Cherries", img: cherriesPng },
+  { key: "coconut", emoji: "🥥", label: "Coconut", img: coconutPng },
+  { key: "pomegranate", emoji: "❤️", label: "Pomegranate", img: pomegranatePng },
+  { key: "mango", emoji: "🥭", label: "Mango", img: mangoPng },
+  { key: "greengrapes", emoji: "🍇", label: "Green grapes", img: greengrapesPng },
+  { key: "fig", emoji: "🟣", label: "Fig", img: figPng },
+  { key: "raspberry", emoji: "🍇", label: "Raspberry", img: raspberryPng },
+  { key: "apricot", emoji: "🟠", label: "Apricot", img: apricotPng },
+];
+
+/** Older SVG picks, kept resolvable so existing avatarKey values never break. */
+const LEGACY_FRUIT_AVATARS: { key: string; emoji: string; label: string; img: string }[] = [
   { key: "cherry", emoji: "🍒", label: "Cherry", img: cherrySvg },
-  { key: "blueberry", emoji: "🫐", label: "Blueberry", img: blueberrySvg },
   { key: "carrot", emoji: "🥕", label: "Carrot", img: carrotSvg },
   { key: "broccoli", emoji: "🥦", label: "Broccoli", img: broccoliSvg },
   { key: "corn", emoji: "🌽", label: "Corn", img: cornSvg },
@@ -149,8 +174,10 @@ export const FRUIT_AVATARS: { key: string; emoji: string; label: string; img: st
 ];
 
 export const fruitAvatarByKey = (key: string | null | undefined) =>
-  FRUIT_AVATARS.find((a) => a.key === key) ?? null;
+  FRUIT_AVATARS.find((a) => a.key === key) ??
+  LEGACY_FRUIT_AVATARS.find((a) => a.key === key) ??
+  null;
 
-/** The bundled SVG image for a fruit key (data URI), or null if unknown. */
+/** The bundled image for a fruit key, or null if unknown. */
 export const fruitAvatarSrc = (key: string | null | undefined) =>
   fruitAvatarByKey(key)?.img ?? null;
