@@ -1,6 +1,12 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, Wallet, MessageSquare, BookOpen, ReceiptText, GraduationCap, FileText, CalendarClock } from "lucide-react";
+import { Sparkles, ReceiptText, FileText, CalendarClock, BookOpen } from "lucide-react";
+
+import { AppIcon } from "@/components/app-icon";
+import iconPayments from "@/assets/icons/payments.png";
+import iconTarget from "@/assets/icons/target.png";
+import iconExercises from "@/assets/icons/exercises.png";
+import iconMessages from "@/assets/icons/messages.png";
 
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@/hooks/useFirestore";
@@ -123,7 +129,7 @@ export function StudentDashboardPage() {
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Link to="/student/payments" className="card p-4 transition-shadow hover:shadow-md">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Wallet className="h-4 w-4" aria-hidden />
+                <AppIcon icon={iconPayments} label="Balance" className="h-4 w-4" />
                 <span className="text-xs font-medium uppercase tracking-wide">Balance</span>
               </div>
               <p className="mt-1 text-lg font-bold text-foreground">{formatMoney(unpaidTotal)}</p>
@@ -137,7 +143,7 @@ export function StudentDashboardPage() {
             </Link>
             <Link to="/student/grades" className="card p-4 transition-shadow hover:shadow-md">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <GraduationCap className="h-4 w-4" aria-hidden />
+                <AppIcon icon={iconTarget} label="Target" className="h-4 w-4" />
                 <span className="text-xs font-medium uppercase tracking-wide">Target</span>
               </div>
               <p className="mt-1 text-lg font-bold text-foreground">
@@ -148,7 +154,7 @@ export function StudentDashboardPage() {
             </Link>
             <Link to="/student/exercises" className="card p-4 transition-shadow hover:shadow-md">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <BookOpen className="h-4 w-4" aria-hidden />
+                <AppIcon icon={iconExercises} label="Homework" className="h-4 w-4" />
                 <span className="text-xs font-medium uppercase tracking-wide">Homework</span>
               </div>
               <p className="mt-1 text-lg font-bold text-foreground">Check</p>
@@ -156,7 +162,7 @@ export function StudentDashboardPage() {
             </Link>
             <Link to="/student/chat" className="card p-4 transition-shadow hover:shadow-md">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <MessageSquare className="h-4 w-4" aria-hidden />
+                <AppIcon icon={iconMessages} label="Messages" className="h-4 w-4" />
                 <span className="text-xs font-medium uppercase tracking-wide">Messages</span>
               </div>
               <p className="mt-1 text-lg font-bold text-foreground">{unreadCountLoading ? "…" : unreadCount}</p>

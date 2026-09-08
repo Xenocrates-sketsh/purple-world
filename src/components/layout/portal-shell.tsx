@@ -8,6 +8,9 @@ import { Brand } from "@/components/brand";
 import { Avatar } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { AppIcon } from "@/components/app-icon";
+import { ChatLauncher } from "./chat-launcher";
+import { fruitAvatarByKey, fruitAvatarSrc } from "@/lib/constants";
 import type { NavItem } from "./nav-config";
 
 interface PortalShellProps {
@@ -34,6 +37,10 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
     [...primaryNav, ...secondaryNav].find((n) => isActivePath(n, location.pathname))?.label ??
     pageTitle;
 
+  const isChatRoute =
+    location.pathname.startsWith("/teacher/chat") ||
+    location.pathname.startsWith("/student/chat");
+
   async function handleLogout() {
     const { getAuth, signOut } = await import("firebase/auth");
     await signOut(getAuth());
@@ -44,7 +51,6 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
     return (
       <nav className={cn("flex flex-col gap-1", className)} aria-label="Primary">
         {items.map((item) => {
-          const Icon = item.icon;
           const active = isActivePath(item, location.pathname);
           return (
             <NavLink
@@ -59,7 +65,7 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
               )}
               aria-current={active ? "page" : undefined}
             >
-              <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
+              <AppIcon icon={item.icon} label={item.label} className="h-[18px] w-[18px] shrink-0" />
               <span className="truncate">{item.label}</span>
             </NavLink>
           );
@@ -79,11 +85,16 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
         <NavList items={[...primaryNav, ...secondaryNav]} className="mt-6 flex-1" />
         <div className="mt-4 border-t border-border pt-4">
           <div className="flex items-center gap-2.5 px-2">
-            <Avatar name={userDoc?.displayName ?? user?.email} src={userDoc?.avatarUrl} size="sm" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-foreground">
-                {userDoc?.displayName ?? "Account"}
-              </p>
+            <Avatar
+              name={userDoc?.displayName ?? user?.email}
+              src={userDoc?.avatarUrl ?? fruitAvatarSrc(userDoc?.avatarKey)}
+              emoji={fruitAvatarByKey(userDoc?.avatarKey)?.emoji}
+              size="sm"
+            />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-foreground">
+              {userDoc?.displayName ?? "Account"}
+            </p>
               <p className="text-xs capitalize text-muted-foreground">{role}</p>
             </div>
             <ThemeToggle compact />
@@ -103,7 +114,12 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
             className="rounded-xl border border-border bg-surface p-1.5"
             aria-label="Account settings"
           >
-            <Avatar name={userDoc?.displayName ?? user?.email} className="h-7 w-7 text-xs" />
+            <Avatar
+              name={userDoc?.displayName ?? user?.email}
+              src={userDoc?.avatarUrl ?? fruitAvatarSrc(userDoc?.avatarKey)}
+              emoji={fruitAvatarByKey(userDoc?.avatarKey)?.emoji}
+              className="h-7 w-7 text-xs"
+            />
           </button>
         </div>
       </header>
@@ -133,7 +149,6 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
       >
         <div className="mx-auto flex max-w-lg items-stretch justify-around px-2 pb-[env(safe-area-inset-bottom)]">
           {allPrimary.map((item) => {
-            const Icon = item.icon;
             const active = isActivePath(item, location.pathname);
             return (
               <NavLink
@@ -145,7 +160,7 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
                 )}
                 aria-current={active ? "page" : undefined}
               >
-                <Icon className="h-5 w-5" aria-hidden />
+                <AppIcon icon={item.icon} label={item.label} className="h-5 w-5" />
                 {item.label}
               </NavLink>
             );
@@ -189,6 +204,8 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
           </div>
         </div>
       ) : null}
+
+      <ChatLauncher onChatRoute={isChatRoute} />
     </div>
   );
 }
