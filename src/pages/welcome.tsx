@@ -118,7 +118,7 @@ export function WelcomePage() {
             <Card className="group card-hover h-full p-5 transition-transform hover:-translate-y-0.5">
               <div className="flex items-center gap-4">
                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-soft text-primary">
-                  <AppIcon icon={iconStudents} label="Student" className="h-7 w-7" />
+                  <AppIcon icon={iconStudents} label="Student" className="h-8 w-8" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-1.5 text-base font-semibold text-foreground">
@@ -140,7 +140,7 @@ export function WelcomePage() {
             <Card className="group card-hover h-full bg-gradient-to-br from-primary-soft/70 to-accent/40 p-5 transition-transform hover:-translate-y-0.5">
               <div className="flex items-center gap-4">
                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-                  <AppIcon icon={iconTeacher} label="Teacher" className="h-7 w-7" />
+                  <AppIcon icon={iconTeacher} label="Teacher" className="h-8 w-8" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-1.5 text-base font-semibold text-foreground">

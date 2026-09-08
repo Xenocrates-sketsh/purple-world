@@ -65,7 +65,7 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
               )}
               aria-current={active ? "page" : undefined}
             >
-              <AppIcon icon={item.icon} label={item.label} className="h-[18px] w-[18px] shrink-0" />
+              <AppIcon icon={item.icon} label={item.label} className="h-6 w-6 shrink-0" />
               <span className="truncate">{item.label}</span>
             </NavLink>
           );
@@ -160,7 +160,7 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
                 )}
                 aria-current={active ? "page" : undefined}
               >
-                <AppIcon icon={item.icon} label={item.label} className="h-5 w-5" />
+                <AppIcon icon={item.icon} label={item.label} className="h-7 w-7" />
                 {item.label}
               </NavLink>
             );

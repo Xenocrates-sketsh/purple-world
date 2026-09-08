@@ -129,7 +129,7 @@ export function StudentDashboardPage() {
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Link to="/student/payments" className="card p-4 transition-shadow hover:shadow-md">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <AppIcon icon={iconPayments} label="Balance" className="h-4 w-4" />
+                <AppIcon icon={iconPayments} label="Balance" className="h-5 w-5" />
                 <span className="text-xs font-medium uppercase tracking-wide">Balance</span>
               </div>
               <p className="mt-1 text-lg font-bold text-foreground">{formatMoney(unpaidTotal)}</p>
@@ -143,7 +143,7 @@ export function StudentDashboardPage() {
             </Link>
             <Link to="/student/grades" className="card p-4 transition-shadow hover:shadow-md">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <AppIcon icon={iconTarget} label="Target" className="h-4 w-4" />
+                <AppIcon icon={iconTarget} label="Target" className="h-5 w-5" />
                 <span className="text-xs font-medium uppercase tracking-wide">Target</span>
               </div>
               <p className="mt-1 text-lg font-bold text-foreground">
@@ -154,7 +154,7 @@ export function StudentDashboardPage() {
             </Link>
             <Link to="/student/exercises" className="card p-4 transition-shadow hover:shadow-md">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <AppIcon icon={iconExercises} label="Homework" className="h-4 w-4" />
+                <AppIcon icon={iconExercises} label="Homework" className="h-5 w-5" />
                 <span className="text-xs font-medium uppercase tracking-wide">Homework</span>
               </div>
               <p className="mt-1 text-lg font-bold text-foreground">Check</p>
@@ -162,7 +162,7 @@ export function StudentDashboardPage() {
             </Link>
             <Link to="/student/chat" className="card p-4 transition-shadow hover:shadow-md">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <AppIcon icon={iconMessages} label="Messages" className="h-4 w-4" />
+                <AppIcon icon={iconMessages} label="Messages" className="h-5 w-5" />
                 <span className="text-xs font-medium uppercase tracking-wide">Messages</span>
               </div>
               <p className="mt-1 text-lg font-bold text-foreground">{unreadCountLoading ? "…" : unreadCount}</p>
