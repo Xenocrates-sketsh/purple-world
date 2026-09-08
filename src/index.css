@@ -238,6 +238,46 @@
   animation: toast-in 0.2s ease-out both;
 }
 
+/* Welcome hero: slow ambient drift + staggered rise-in */
+@keyframes pw-ambient {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(2%, -1%, 0) scale(1.05);
+  }
+}
+@keyframes pw-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pw-ambient {
+  animation: pw-ambient 14s ease-in-out infinite;
+}
+.pw-rise {
+  animation: pw-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.pw-rise-2 {
+  animation-delay: 0.08s;
+}
+.pw-rise-3 {
+  animation-delay: 0.16s;
+}
+.pw-rise-4 {
+  animation-delay: 0.24s;
+}
+.pw-rise-5 {
+  animation-delay: 0.32s;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
