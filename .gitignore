@@ -36,6 +36,7 @@ yarn-error.log*
 .vscode
 .idea
 .env*
+!.env.example
 
 # Local Netlify folder
 .netlify

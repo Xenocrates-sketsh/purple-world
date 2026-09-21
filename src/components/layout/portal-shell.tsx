@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
 import { AppIcon } from "@/components/app-icon";
 import { ChatLauncher } from "./chat-launcher";
-import { fruitAvatarByKey, fruitAvatarSrc } from "@/lib/constants";
+import { fruitAvatarSrc } from "@/lib/constants";
 import type { NavItem } from "./nav-config";
 
 interface PortalShellProps {
@@ -88,7 +88,6 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
             <Avatar
               name={userDoc?.displayName ?? user?.email}
               src={userDoc?.avatarUrl ?? fruitAvatarSrc(userDoc?.avatarKey)}
-              emoji={fruitAvatarByKey(userDoc?.avatarKey)?.emoji}
               size="sm"
             />
           <div className="min-w-0 flex-1">
@@ -117,7 +116,6 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
             <Avatar
               name={userDoc?.displayName ?? user?.email}
               src={userDoc?.avatarUrl ?? fruitAvatarSrc(userDoc?.avatarKey)}
-              emoji={fruitAvatarByKey(userDoc?.avatarKey)?.emoji}
               className="h-7 w-7 text-xs"
             />
           </button>

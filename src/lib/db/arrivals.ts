@@ -85,6 +85,8 @@ export async function acceptArrival(id: string, arrival: ArrivalDoc, teacherUid:
     active: true,
     bacInfo: { year: null, targetScore: null },
     avatarUrl: null,
+    avatarKey: null,
+    blocked: false,
     registeredAt: null,
     linkedUid: uid,
     inviteCode: null,

@@ -18,11 +18,12 @@ interface ChatThreadProps {
   conversationId: string | null;
   myUid: string;
   otherName?: string | null;
+  avatarSrc?: string | null;
   /** Participant doc from the auth pattern — not needed; read markers live on the participant subcollection. */
   backHref?: string;
 }
 
-export function ChatThread({ conversationId, myUid, otherName, backHref }: ChatThreadProps) {
+export function ChatThread({ conversationId, myUid, otherName, avatarSrc, backHref }: ChatThreadProps) {
   const { toast } = useToast();
   const messages = useQuery<MessageDoc>(
     (db) => (conversationId ? messagesOfConversationQuery(db, conversationId) : null),
@@ -89,7 +90,7 @@ export function ChatThread({ conversationId, myUid, otherName, backHref }: ChatT
             <ArrowLeft className="h-5 w-5" aria-hidden />
           </a>
         ) : null}
-        <Avatar name={otherName} size="sm" />
+        <Avatar name={otherName} src={avatarSrc ?? null} size="sm" />
         <p className="truncate font-medium text-foreground">{otherName ?? "Chat"}</p>
       </div>
 

@@ -30,8 +30,7 @@ export function TeacherGroupChatPage() {
         <ChatThread
           conversationId={data ? conversationId : null}
           myUid={user?.uid ?? ""}
-          title={title}
-          isTeacher
+          otherName={title}
           backHref="/teacher/chat"
         />
       )}

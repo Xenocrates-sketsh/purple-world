@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useDoc } from "@/hooks/useFirestore";
 import { paths } from "@/lib/db/paths";
 import { ChatThread } from "@/components/chat/chat-thread";
-import { fruitAvatarByKey, fruitAvatarSrc } from "@/lib/constants";
+import { fruitAvatarSrc } from "@/lib/constants";
 import type { ConversationDoc, UserDoc } from "@/lib/types";
 import { SkeletonList } from "@/components/ui/skeleton";
 
@@ -35,11 +35,9 @@ export function StudentChatThreadPage() {
         <ChatThread
           conversationId={data ? conversationId : null}
           myUid={user?.uid ?? ""}
-          title={title}
+          otherName={title}
           backHref="/student/chat"
-          targetUid={targetUid}
           avatarSrc={teacherData?.avatarUrl ?? fruitAvatarSrc(teacherData?.avatarKey)}
-          avatarEmoji={fruitAvatarByKey(teacherData?.avatarKey)?.emoji}
         />
       )}
     </div>

@@ -145,6 +145,8 @@ export function TeacherStudentsPage() {
           targetScore: targetScore ? Number(targetScore) : null,
         },
         avatarUrl: null,
+        avatarKey: null,
+        blocked: false,
         registeredAt: null,
         linkedUid: null,
         inviteCode: null,

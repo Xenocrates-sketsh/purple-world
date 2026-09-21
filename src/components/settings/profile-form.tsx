@@ -4,7 +4,7 @@ import { Camera } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { getFirestoreDb } from "@/lib/firebase";
 import { uploadAvatar } from "@/lib/supabase";
-import { FRUIT_AVATARS, fruitAvatarByKey, fruitAvatarSrc } from "@/lib/constants";
+import { FRUIT_AVATARS, fruitAvatarSrc } from "@/lib/constants";
 import { useToast } from "@/lib/toast";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
@@ -25,7 +25,6 @@ export function ProfileForm() {
   const [uploading, setUploading] = useState(false);
 
   const isStudent = userDoc?.role === "student";
-  const selectedFruit = fruitAvatarByKey(userDoc?.avatarKey);
 
   async function onSaveName(e: FormEvent) {
     e.preventDefault();
@@ -84,7 +83,6 @@ export function ProfileForm() {
           <Avatar
             name={displayName}
             src={userDoc?.avatarUrl ?? fruitAvatarSrc(userDoc?.avatarKey)}
-            emoji={selectedFruit?.emoji}
             size="lg"
           />
           <div>
@@ -129,7 +127,7 @@ export function ProfileForm() {
           </div>
         ) : (
           <div className="relative w-fit">
-            <Avatar name={displayName} src={userDoc?.avatarUrl ?? fruitAvatarSrc(userDoc?.avatarKey)} emoji={selectedFruit?.emoji} size="lg" />
+            <Avatar name={displayName} src={userDoc?.avatarUrl ?? fruitAvatarSrc(userDoc?.avatarKey)} size="lg" />
             <button
               type="button"
               aria-label="Choose avatar"
