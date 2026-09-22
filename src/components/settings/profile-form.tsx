@@ -80,11 +80,41 @@ export function ProfileForm() {
       <CardHeader title="Profile" description="How you appear across the platform." />
       <CardContent className="space-y-5">
         <div className="flex items-center gap-4">
-          <Avatar
-            name={displayName}
-            src={userDoc?.avatarUrl ?? fruitAvatarSrc(userDoc?.avatarKey)}
-            size="lg"
-          />
+          {isStudent ? (
+            <Avatar
+              name={displayName}
+              src={userDoc?.avatarUrl ?? fruitAvatarSrc(userDoc?.avatarKey)}
+              size="lg"
+            />
+          ) : (
+            <div className="relative w-fit">
+              <Avatar
+                name={displayName}
+                src={userDoc?.avatarUrl ?? fruitAvatarSrc(userDoc?.avatarKey)}
+                size="lg"
+              />
+              <button
+                type="button"
+                aria-label="Choose avatar"
+                title="Upload profile photo"
+                onClick={() => fileRef.current?.click()}
+                className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white shadow-sm"
+              >
+                <Camera className="h-4 w-4" aria-hidden />
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                aria-hidden
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void onPickAvatar(f);
+                }}
+              />
+            </div>
+          )}
           <div>
             <p className="font-semibold text-foreground">{displayName || "You"}</p>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
@@ -125,30 +155,7 @@ export function ProfileForm() {
               })}
             </div>
           </div>
-        ) : (
-          <div className="relative w-fit">
-            <Avatar name={displayName} src={userDoc?.avatarUrl ?? fruitAvatarSrc(userDoc?.avatarKey)} size="lg" />
-            <button
-              type="button"
-              aria-label="Choose avatar"
-              onClick={() => fileRef.current?.click()}
-              className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white shadow-sm"
-            >
-              <Camera className="h-4 w-4" aria-hidden />
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              aria-hidden
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void onPickAvatar(f);
-              }}
-            />
-          </div>
-        )}
+        ) : null}
 
         <form onSubmit={onSaveName} className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
