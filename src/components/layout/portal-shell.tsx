@@ -8,7 +8,6 @@ import { Brand } from "@/components/brand";
 import { Avatar } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
-import { AppIcon } from "@/components/app-icon";
 import { ChatLauncher } from "./chat-launcher";
 import { fruitAvatarSrc } from "@/lib/constants";
 import type { NavItem } from "./nav-config";
@@ -51,6 +50,7 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
     return (
       <nav className={cn("flex flex-col gap-1", className)} aria-label="Primary">
         {items.map((item) => {
+          const Icon = item.icon;
           const active = isActivePath(item, location.pathname);
           return (
             <NavLink
@@ -65,7 +65,7 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
               )}
               aria-current={active ? "page" : undefined}
             >
-              <AppIcon icon={item.icon} label={item.label} className="h-6 w-6 shrink-0" />
+              <Icon className="h-6 w-6 shrink-0" aria-hidden />
               <span className="truncate">{item.label}</span>
             </NavLink>
           );
@@ -147,6 +147,7 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
       >
         <div className="mx-auto flex max-w-lg items-stretch justify-around px-2 pb-[env(safe-area-inset-bottom)]">
           {allPrimary.map((item) => {
+            const Icon = item.icon;
             const active = isActivePath(item, location.pathname);
             return (
               <NavLink
@@ -158,7 +159,7 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
                 )}
                 aria-current={active ? "page" : undefined}
               >
-                <AppIcon icon={item.icon} label={item.label} className="h-7 w-7" />
+                <Icon className="h-7 w-7" aria-hidden />
                 {item.label}
               </NavLink>
             );
