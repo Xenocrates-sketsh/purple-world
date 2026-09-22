@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import { cn } from "@/lib/cn";
 import { initials } from "@/lib/format";
 
@@ -18,6 +20,11 @@ export function Avatar({
   size?: keyof typeof SIZES;
   className?: string;
 }) {
+  // If the image fails to load (deleted file, paused storage bucket,
+  // offline), fall back to initials instead of a broken-image glyph.
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [src]);
+  const showImg = Boolean(src) && !failed;
   return (
     <span
       className={cn(
@@ -27,8 +34,14 @@ export function Avatar({
       )}
       aria-hidden
     >
-      {src ? (
-        <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+      {showImg ? (
+        <img
+          src={src!}
+          alt=""
+          className="h-full w-full object-cover"
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
       ) : (
         initials(name)
       )}
