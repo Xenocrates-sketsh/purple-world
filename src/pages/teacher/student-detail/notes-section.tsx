@@ -16,6 +16,10 @@ interface NotesSectionProps {
   noteOpen: boolean;
   noteText: string;
   editingNoteId: string | null;
+  title?: string;
+  description?: string;
+  placeholder?: string;
+  addLabel?: string;
   onOpenAdd: () => void;
   onOpenEdit: (id: string, content: string) => void;
   onCloseNote: () => void;
@@ -26,12 +30,16 @@ interface NotesSectionProps {
 
 export function StudentNotesSection(props: NotesSectionProps) {
   const { notes } = props;
+  const title = props.title ?? "Private notes";
+  const description = props.description ?? "Only you can see these";
+  const placeholder = props.placeholder ?? "Homework habits, strengths, next steps…";
+  const addLabel = props.addLabel ?? "Add note";
   return (
     <>
       <Card>
         <CardHeader
-          title="Private notes"
-          description="Only you can see these"
+          title={title}
+          description={description}
           action={
             <Button
               variant="ghost"
@@ -39,7 +47,7 @@ export function StudentNotesSection(props: NotesSectionProps) {
               onClick={props.onOpenAdd}
               leftIcon={<Pencil className="h-4 w-4" aria-hidden />}
             >
-              Add note
+              {addLabel}
             </Button>
           }
         />
@@ -97,7 +105,7 @@ export function StudentNotesSection(props: NotesSectionProps) {
       >
         <form onSubmit={props.onSubmitNote}>
           <Field label="Note">
-            <Textarea value={props.noteText} onChange={(e) => props.onNoteText(e.target.value)} rows={4} placeholder="Homework habits, strengths, next steps…" />
+            <Textarea value={props.noteText} onChange={(e) => props.onNoteText(e.target.value)} rows={4} placeholder={placeholder} />
           </Field>
         </form>
       </Modal>
