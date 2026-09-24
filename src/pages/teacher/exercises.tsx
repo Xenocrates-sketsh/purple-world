@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
-import { Plus, FileText, Pencil, Trash2, Archive, ArchiveRestore, CheckCircle2, Paperclip, X, ExternalLink } from "lucide-react";
+import { Plus, FileText, Archive, ArchiveRestore } from "lucide-react";
 
 import { useQuery, useDocMap } from "@/hooks/useFirestore";
 import { allExercisesQuery, createExercise, updateExercise, deleteExercise, setExerciseArchived } from "@/lib/db/exercises";
@@ -8,65 +7,21 @@ import { allGroupsQuery } from "@/lib/db/groups";
 import { allStudentsQuery } from "@/lib/db/students";
 import { fanOutNotifications } from "@/lib/db/announcements";
 import { Timestamp } from "firebase/firestore";
-import { EXERCISE_CATEGORIES, EXERCISE_DIFFICULTIES } from "@/lib/constants";
-import type { ExerciseCategory, ExerciseDifficulty, ExerciseDoc, GroupDoc, StudentDoc } from "@/lib/types";
-import { formatRelative } from "@/lib/format";
+import type { ExerciseDoc, GroupDoc, StudentDoc } from "@/lib/types";
 import { uploadLessonFile } from "@/lib/supabase";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Field } from "@/components/ui/field";
-import { Modal } from "@/components/ui/modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { useToast } from "@/lib/toast";
-
-const EXERCISE_ACCEPT =
-  ".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.zip";
-
-function attachmentName(url: string): string {
-  try {
-    const name = decodeURIComponent(url.split("/").pop() ?? "");
-    return name.replace(/^[0-9]+-[a-z0-9]{6}-/, "");
-  } catch {
-    return url.split("/").pop() ?? "Attachment";
-  }
-}
-
-interface FormState {
-  title: string;
-  description: string;
-  instructions: string;
-  category: ExerciseCategory;
-  difficulty: ExerciseDifficulty;
-  deadlineDate: string;
-  deadlineTime: string;
-  attachments: string[];
-  assignedGroupIds: string[];
-  assignedStudentIds: string[];
-}
-
-const emptyForm: FormState = {
-  title: "",
-  description: "",
-  instructions: "",
-  category: "grammar",
-  difficulty: "medium",
-  deadlineDate: "",
-  deadlineTime: "18:00",
-  attachments: [],
-  assignedGroupIds: [],
-  assignedStudentIds: [],
-};
-
-function CategoryDot({ c }: { c: ExerciseCategory }) {
-  return <Badge variant="primary">{EXERCISE_CATEGORIES.find((x) => x.value === c)?.label ?? c}</Badge>;
-}
+import {
+  ExerciseList,
+  ExerciseFormModal,
+  emptyExerciseForm,
+  type ExerciseFormState,
+} from "./exercises/exercise-parts";
 
 export function TeacherExercisesPage() {
   const { toast } = useToast();
@@ -78,15 +33,11 @@ export function TeacherExercisesPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<{ id: string; data: ExerciseDoc } | null>(null);
-  const [form, setForm] = useState<FormState>(emptyForm);
+  const [form, setForm] = useState<ExerciseFormState>(emptyExerciseForm);
   const [saving, setSaving] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [toDelete, setToDelete] = useState<{ id: string; title: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  function toggleId(list: string[], id: string): string[] {
-    return list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
-  }
 
   async function onPickExerciseFile(file: File) {
     setUploadingFile(true);
@@ -101,13 +52,9 @@ export function TeacherExercisesPage() {
     }
   }
 
-  function removeExerciseAttachment(url: string) {
-    setForm((f) => ({ ...f, attachments: f.attachments.filter((u) => u !== url) }));
-  }
-
   function openCreate() {
     setEditing(null);
-    setForm(emptyForm);
+    setForm(emptyExerciseForm);
     setOpen(true);
   }
 
@@ -222,11 +169,6 @@ export function TeacherExercisesPage() {
   }
 
   const visible = (exercises.docs ?? []).filter((x) => (showArchived ? x.data.archived : !x.data.archived));
-  const assignedLabel = (x: ExerciseDoc): string => {
-    if (x.assignedGroupIds.length > 0)
-      return x.assignedGroupIds.map((g) => groupsById.get(g)?.name ?? "Group").join(", ");
-    return `${x.assignedStudentIds.length} student${x.assignedStudentIds.length === 1 ? "" : "s"}`;
-  };
 
   return (
     <div>
@@ -262,215 +204,31 @@ export function TeacherExercisesPage() {
       ) : (
         <Card>
           <CardContent className="p-0">
-            <ul className="divide-y divide-border">
-              {visible.map((x) => (
-                <li key={x.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
-                    <FileText className="h-5 w-5" aria-hidden />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-foreground">{x.data.title}</p>
-                    <p className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                      <span>{assignedLabel(x.data)}</span>
-                      <span>{x.data.difficulty}</span>
-                      <span>
-                        {x.data.deadline
-                          ? `Due ${formatRelative(x.data.deadline)}`
-                          : "No deadline"}
-                      </span>
-                    </p>
-                  </div>
-                  {x.data.archived ? <Badge variant="neutral">archived</Badge> : <CategoryDot c={x.data.category} />}
-                  <div className="flex items-center gap-1">
-                    <Link to={`/teacher/exercises/${x.id}`} className="btn-ghost btn-sm">
-                      <CheckCircle2 className="h-4 w-4" aria-hidden /> View
-                    </Link>
-                    <button
-                      type="button"
-                      aria-label="Edit exercise"
-                      className="rounded-lg p-2 text-muted-foreground hover:bg-surface-muted hover:text-foreground"
-                      onClick={() => openEdit(x)}
-                    >
-                      <Pencil className="h-4 w-4" aria-hidden />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={x.data.archived ? "Restore exercise" : "Archive exercise"}
-                      className="rounded-lg p-2 text-muted-foreground hover:bg-surface-muted hover:text-foreground"
-                      onClick={() => onToggleArchive(x)}
-                    >
-                      {x.data.archived ? <ArchiveRestore className="h-4 w-4" aria-hidden /> : <Archive className="h-4 w-4" aria-hidden />}
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Delete exercise"
-                      className="rounded-lg p-2 text-muted-foreground hover:bg-danger-soft hover:text-danger"
-                      onClick={() => setToDelete({ id: x.id, title: x.data.title })}
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <ExerciseList
+              items={visible}
+              groupsById={groupsById}
+              onEdit={openEdit}
+              onToggleArchive={onToggleArchive}
+              onDeleteAsk={(x) => setToDelete({ id: x.id, title: x.data.title })}
+            />
           </CardContent>
         </Card>
       )}
 
-      <Modal
+      <ExerciseFormModal
         open={open}
+        editing={editing != null}
+        form={form}
+        groups={groups}
+        students={students}
+        saving={saving}
+        uploadingFile={uploadingFile}
         onClose={() => setOpen(false)}
-        title={editing ? "Edit exercise" : "New exercise"}
-        size="lg"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={onSubmit} loading={saving} disabled={uploadingFile}>{editing ? "Save changes" : "Publish"}</Button>
-          </>
-        }
-      >
-        <form onSubmit={onSubmit} className="space-y-4">
-          <Field label="Title" htmlFor="x-title" required>
-            <Input id="x-title" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="BAC writing: formal letter" required />
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Category" htmlFor="x-cat">
-              <Select id="x-cat" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as ExerciseCategory }))}>
-                {EXERCISE_CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Difficulty" htmlFor="x-diff">
-              <Select id="x-diff" value={form.difficulty} onChange={(e) => setForm((f) => ({ ...f, difficulty: e.target.value as ExerciseDifficulty }))}>
-                {EXERCISE_DIFFICULTIES.map((d) => (
-                  <option key={d.value} value={d.value}>{d.label}</option>
-                ))}
-              </Select>
-            </Field>
-          </div>
-          <Field label="Assign to groups">
-            {groups.docs == null ? (
-              <SkeletonList count={1} />
-            ) : (groups.docs ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Create a group first.</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {(groups.docs ?? []).map((g) => {
-                  const on = form.assignedGroupIds.includes(g.id);
-                  return (
-                    <button
-                      key={g.id}
-                      type="button"
-                      onClick={() => setForm((f) => ({ ...f, assignedGroupIds: toggleId(f.assignedGroupIds, g.id) }))}
-                      className={
-                        "rounded-full border px-3 py-1.5 text-sm transition-colors " +
-                        (on
-                          ? "border-primary bg-primary-soft text-primary"
-                          : "border-border bg-surface-muted text-muted-foreground hover:text-foreground")
-                      }
-                    >
-                      {g.data.name} {on ? "✓" : ""}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </Field>
-          <Field
-            hint="Students assigned directly, in addition to groups."
-          >
-            {students.docs == null ? (
-              <SkeletonList count={1} />
-            ) : (students.docs ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">No students yet.</p>
-            ) : (
-              <div className="max-h-36 overflow-y-auto rounded-xl border border-border p-2 scrollbar-thin">
-                {(students.docs ?? []).filter((s) => s.data.active).map((s) => {
-                  const on = form.assignedStudentIds.includes(s.id);
-                  return (
-                    <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-surface-muted">
-                      <input
-                        type="checkbox"
-                        checked={on}
-                        onChange={() => setForm((f) => ({ ...f, assignedStudentIds: toggleId(f.assignedStudentIds, s.id) }))}
-                        className="h-4 w-4 accent-violet-600"
-                      />
-                      <span className={on ? "text-foreground" : "text-muted-foreground"}>{s.data.name}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            )}
-          </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Deadline date">
-              <Input type="date" value={form.deadlineDate} onChange={(e) => setForm((f) => ({ ...f, deadlineDate: e.target.value }))} />
-            </Field>
-            <Field label="Deadline time">
-              <Input type="time" value={form.deadlineTime} onChange={(e) => setForm((f) => ({ ...f, deadlineTime: e.target.value }))} />
-            </Field>
-          </div>
-          <Field label="Files (PDF)" htmlFor="exercise-file-input" hint="Optional. The exercise sheet / worksheet — drag in a PDF or image.">
-            <div className="space-y-2">
-              {form.attachments.length > 0 ? (
-                <ul className="divide-y divide-border rounded-xl border border-border">
-                  {form.attachments.map((url) => (
-                    <li key={url} className="flex items-center gap-2 px-3 py-2">
-                      <FileText className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                      <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                        {attachmentName(url)}
-                      </span>
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-surface-muted hover:text-foreground"
-                        aria-label={`Open ${attachmentName(url)}`}
-                      >
-                        <ExternalLink className="h-4 w-4" aria-hidden />
-                      </a>
-                      <button
-                        type="button"
-                        aria-label={`Remove ${attachmentName(url)}`}
-                        onClick={() => removeExerciseAttachment(url)}
-                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-danger-soft hover:text-danger"
-                      >
-                        <X className="h-4 w-4" aria-hidden />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              <label
-                htmlFor="exercise-file-input"
-                className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:opacity-50"
-              >
-                <Paperclip className="h-4 w-4" aria-hidden />
-                {uploadingFile ? "Uploading…" : "Attach a file"}
-                <input
-                  id="exercise-file-input"
-                  type="file"
-                  accept={EXERCISE_ACCEPT}
-                  className="hidden"
-                  disabled={uploadingFile}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void onPickExerciseFile(f);
-                    e.currentTarget.value = "";
-                  }}
-                />
-              </label>
-            </div>
-          </Field>
-          <Field label="Description" htmlFor="x-desc">
-            <Textarea id="x-desc" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={2} />
-          </Field>
-          <Field label="Instructions" htmlFor="x-instr">
-            <Textarea id="x-instr" value={form.instructions} onChange={(e) => setForm((f) => ({ ...f, instructions: e.target.value }))} rows={4} placeholder="What should students do?" />
-          </Field>
-        </form>
-      </Modal>
+        onForm={(patch) => setForm((f) => ({ ...f, ...patch }))}
+        onSubmit={onSubmit}
+        onPickFile={onPickExerciseFile}
+        onRemoveAttachment={(url) => setForm((f) => ({ ...f, attachments: f.attachments.filter((u) => u !== url) }))}
+      />
 
       <ConfirmDialog
         open={toDelete != null}
