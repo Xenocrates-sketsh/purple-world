@@ -1,4 +1,4 @@
-import { Paperclip, FileText, X, ExternalLink } from "lucide-react";
+import { Paperclip } from "lucide-react";
 
 import type { QueryState } from "@/hooks/useFirestore";
 import { Button } from "@/components/ui/button";
@@ -6,19 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
 import { SkeletonList } from "@/components/ui/skeleton";
+import { AttachmentList } from "@/components/attachment-list";
+import { ATTACHMENT_ACCEPT } from "@/lib/attachments";
 import type { GroupDoc } from "@/lib/types";
-
-export const LESSON_ACCEPT =
-  ".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.zip";
-
-export function attachmentName(url: string): string {
-  try {
-    const name = decodeURIComponent(url.split("/").pop() ?? "");
-    return name.replace(/^[0-9]+-[a-z0-9]{6}-/, "");
-  } catch {
-    return url.split("/").pop() ?? "Attachment";
-  }
-}
 
 export function LessonFormModal({
   open,
@@ -115,35 +105,7 @@ export function LessonFormModal({
           htmlFor="lesson-file-input"
         >
           <div className="space-y-2">
-            {attachments.length > 0 ? (
-              <ul className="divide-y divide-border rounded-xl border border-border">
-                {attachments.map((url) => (
-                  <li key={url} className="flex items-center gap-2 px-3 py-2">
-                    <FileText className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                    <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                      {attachmentName(url)}
-                    </span>
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-lg p-1.5 text-muted-foreground hover:bg-surface-muted hover:text-foreground"
-                      aria-label={`Open ${attachmentName(url)}`}
-                    >
-                      <ExternalLink className="h-4 w-4" aria-hidden />
-                    </a>
-                    <button
-                      type="button"
-                      aria-label={`Remove ${attachmentName(url)}`}
-                      onClick={() => onRemoveAttachment(url)}
-                      className="rounded-lg p-1.5 text-muted-foreground hover:bg-danger-soft hover:text-danger"
-                    >
-                      <X className="h-4 w-4" aria-hidden />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+            <AttachmentList urls={attachments} onRemove={onRemoveAttachment} />
             <label
               htmlFor="lesson-file-input"
               className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:opacity-50"
@@ -153,7 +115,7 @@ export function LessonFormModal({
               <input
                 id="lesson-file-input"
                 type="file"
-                accept={LESSON_ACCEPT}
+                accept={ATTACHMENT_ACCEPT}
                 className="hidden"
                 disabled={uploadingFile}
                 onChange={(e) => {
