@@ -3,17 +3,11 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Pencil,
-  MessageSquare,
   GraduationCap,
-  FileText,
   Phone,
   School,
-  BookOpen,
-  UserPlus,
-  CreditCard,
   GitBranch,
-  Ban,
-  ShieldCheck,
+  UserPlus,
 } from "lucide-react";
 
 import { useAuth } from "@/lib/auth";
@@ -25,21 +19,21 @@ import { allAssessmentsQuery, studentResultsQuery } from "@/lib/db/assessments";
 import { notesQuery, addNote, updateNote, deleteNote } from "@/lib/db/notes";
 import { findConversation, createConversation } from "@/lib/db/chat";
 import { paths } from "@/lib/db/paths";
-import { BAC_STREAMS } from "@/lib/constants";
-import { formatDate, formatMoney, formatDateTime } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import type { StudentDoc, GroupDoc, NoteEntryDoc, PaymentDoc, AssessmentDoc, AssessmentResultDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Field } from "@/components/ui/field";
-import { Modal } from "@/components/ui/modal";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { useToast } from "@/lib/toast";
+import { StudentNotesSection } from "./student-detail/notes-section";
+import { StudentGradesCard, StudentPaymentsCard } from "./student-detail/grades-payments";
+import { StudentActionsCard } from "./student-detail/actions-card";
+import { StudentEditModal, type StudentFormState } from "./student-detail/edit-modal";
+import { StudentInviteModal, StudentBlockModal } from "./student-detail/info-modals";
 
 export function TeacherStudentDetailPage() {
   const { studentId = "" } = useParams();
@@ -64,16 +58,7 @@ export function TeacherStudentDetailPage() {
   const [blockOpen, setBlockOpen] = useState(false);
   const [blocking, setBlocking] = useState(false);
 
-  const [form, setForm] = useState<{
-    name: string;
-    studentNo: string;
-    phone: string;
-    parentPhone: string;
-    school: string;
-    stream: string;
-    bacYear: string;
-    targetScore: string;
-  } | null>(null);
+  const [form, setForm] = useState<StudentFormState | null>(null);
 
   const data = student.doc?.data;
 
@@ -270,184 +255,31 @@ export function TeacherStudentDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader
-              title="Private notes"
-              description="Only you can see these"
-              action={
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setEditingNoteId(null);
-                    setNoteText("");
-                    setNoteOpen(true);
-                  }}
-                  leftIcon={<Pencil className="h-4 w-4" aria-hidden />}
-                >
-                  Add note
-                </Button>
-              }
-            />
-            <CardContent className="px-3 py-2">
-              {notes.loading ? (
-                <SkeletonList count={2} />
-              ) : (notes.docs ?? []).length === 0 ? (
-                <EmptyState
-                  icon={FileText}
-                  title="No notes yet"
-                  description="Jot down observations, goals or reminders about this student."
-                />
-              ) : (
-                <ul className="space-y-1">
-                  {(notes.docs ?? []).map((n) => (
-                    <li key={n.id} className="rounded-xl px-2 py-2.5 transition-colors hover:bg-surface-muted">
-                      <p className="whitespace-pre-wrap text-sm text-foreground">{n.data.content}</p>
-                      <div className="mt-1 flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">{formatDateTime(n.data.updatedAt)}</span>
-                        <div className="flex gap-1">
-                          <button
-                            type="button"
-                            className="rounded-md px-2 py-0.5 text-xs text-muted-foreground hover:bg-surface-muted hover:text-foreground"
-                            onClick={() => {
-                              setEditingNoteId(n.id);
-                              setNoteText(n.data.content);
-                              setNoteOpen(true);
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="rounded-md px-2 py-0.5 text-xs text-danger hover:bg-danger-soft"
-                            onClick={() => onDeleteNote(n.id)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
+          <StudentNotesSection
+            notes={notes}
+            noteOpen={noteOpen}
+            noteText={noteText}
+            editingNoteId={editingNoteId}
+            onOpenAdd={() => { setEditingNoteId(null); setNoteText(""); setNoteOpen(true); }}
+            onOpenEdit={(id, content) => { setEditingNoteId(id); setNoteText(content); setNoteOpen(true); }}
+            onCloseNote={() => setNoteOpen(false)}
+            onNoteText={setNoteText}
+            onSubmitNote={onAddNote}
+            onDeleteNote={onDeleteNote}
+          />
 
-          <Card>
-            <CardHeader
-              title="Recent grades"
-              action={
-                <Link to="/teacher/grades" className="text-sm font-medium text-primary hover:underline">
-                  All grades
-                </Link>
-              }
-            />
-            <CardContent className="p-0">
-              {results.loading ? (
-                <div className="p-5"><SkeletonList count={3} /></div>
-              ) : (results.docs ?? []).length === 0 ? (
-                <EmptyState
-                  icon={BookOpen}
-                  title="No grades yet"
-                  description="Grades you record under Assessments will appear here."
-                />
-              ) : (
-                <ul className="divide-y divide-border">
-                  {(results.docs ?? []).slice(0, 6).map((r) => {
-                    const ass = assessmentsById.get(r.data.assessmentId) ?? null;
-                    return (
-                      <li key={r.id} className="flex items-center justify-between gap-3 px-5 py-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {ass?.title ?? "Assessment"}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{formatDate(r.data.createdAt)}</p>
-                        </div>
-                        <span className="text-sm font-semibold text-foreground">
-                          {r.data.score} / {ass?.maxScore ?? "…"}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
+          <StudentGradesCard results={results} assessmentsById={assessmentsById} />
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardHeader
-              title="Payments"
-              action={
-                <Link to="/teacher/payments" className="text-sm font-medium text-primary hover:underline">
-                  Manage
-                </Link>
-              }
-            />
-            <CardContent>
-              {payments.docs == null ? (
-                <SkeletonList count={1} />
-              ) : (payments.docs ?? []).length === 0 ? (
-                <EmptyState icon={CreditCard} title="No payment records" />
-              ) : (
-                <ul className="space-y-2">
-                  {(payments.docs ?? []).slice(0, 4).map((p) => (
-                    <li key={p.id} className="rounded-lg bg-surface-muted px-3 py-2 text-sm">
-                      <span className="block font-medium text-foreground">{formatMoney(p.data.amount)}</span>
-                      <span
-                        className={
-                          "block text-xs " +
-                          (p.data.status === "paid"
-                            ? "text-success"
-                            : p.data.dueDate.toMillis() < Date.now()
-                              ? "text-danger"
-                              : "text-warning-foreground")
-                        }
-                      >
-                        {p.data.status === "paid"
-                          ? `Paid ${formatDate(p.data.paidDate)}`
-                          : `Due ${formatDate(p.data.dueDate)}`}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
+          <StudentPaymentsCard payments={payments} />
 
-          <Card>
-            <CardHeader title="Quick actions" />
-            <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-              <Button variant="secondary" onClick={onChat} leftIcon={<MessageSquare className="h-4 w-4" aria-hidden />}>
-                Open chat
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => toast("Invoice sheet — coming soon", { variant: "info" })}
-                leftIcon={<CreditCard className="h-4 w-4" aria-hidden />}
-              >
-                New payment
-              </Button>
-              {data.blocked ? (
-                <Button
-                  variant="secondary"
-                  onClick={() => setBlockOpen(true)}
-                  leftIcon={<ShieldCheck className="h-4 w-4" aria-hidden />}
-                >
-                  Unblock student
-                </Button>
-              ) : (
-                <Button
-                  variant="danger"
-                  onClick={() => setBlockOpen(true)}
-                  leftIcon={<Ban className="h-4 w-4" aria-hidden />}
-                >
-                  Block student
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          <StudentActionsCard
+            blocked={data.blocked}
+            onChat={onChat}
+            onNewPayment={() => toast("Invoice sheet — coming soon", { variant: "info" })}
+            onBlock={() => setBlockOpen(true)}
+          />
 
           {data.linkedUid == null && (
             <Card>
@@ -463,129 +295,30 @@ export function TeacherStudentDetailPage() {
         </div>
       </div>
 
-      <Modal
+      <StudentEditModal
         open={editOpen}
+        form={form}
+        saving={saving}
         onClose={() => setEditOpen(false)}
-        title="Edit student"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button onClick={onSave} loading={saving}>Save changes</Button>
-          </>
-        }
-      >
-        <form onSubmit={onSave} className="grid gap-4 sm:grid-cols-2">
-          <Field label="Full name" required>
-            <Input value={form?.name ?? ""} onChange={(e) => setForm((f) => (f ? { ...f, name: e.target.value } : f))} required />
-          </Field>
-          <Field label="Student number" required>
-            <Input value={form?.studentNo ?? ""} onChange={(e) => setForm((f) => (f ? { ...f, studentNo: e.target.value } : f))} required />
-          </Field>
-          <Field label="Phone">
-            <Input value={form?.phone ?? ""} onChange={(e) => setForm((f) => (f ? { ...f, phone: e.target.value } : f))} />
-          </Field>
-          <Field label="Parent phone">
-            <Input value={form?.parentPhone ?? ""} onChange={(e) => setForm((f) => (f ? { ...f, parentPhone: e.target.value } : f))} />
-          </Field>
-          <Field label="School">
-            <Input value={form?.school ?? ""} onChange={(e) => setForm((f) => (f ? { ...f, school: e.target.value } : f))} />
-          </Field>
-          <Field label="BAC stream">
-            <Select value={form?.stream ?? ""} onChange={(e) => setForm((f) => (f ? { ...f, stream: e.target.value } : f))}>
-              <option value="">No stream</option>
-              {BAC_STREAMS.map((b) => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="BAC year">
-            <Input value={form?.bacYear ?? ""} onChange={(e) => setForm((f) => (f ? { ...f, bacYear: e.target.value } : f))} />
-          </Field>
-          <Field label="Target score (/20)">
-            <Input type="number" min={0} max={20} step={0.25} value={form?.targetScore ?? ""} onChange={(e) => setForm((f) => (f ? { ...f, targetScore: e.target.value } : f))} />
-          </Field>
-        </form>
-      </Modal>
+        onForm={(patch) => setForm((f) => (f ? { ...f, ...patch } : f))}
+        onSave={onSave}
+      />
 
-      <Modal
+      <StudentInviteModal
         open={inviteOpen}
+        studentName={data?.name ?? "Student Name"}
+        studentId={studentId}
         onClose={() => setInviteOpen(false)}
-        title="Create student account"
-        description="Student accounts are created once by the admin — there is no open sign-up in this app."
-        footer={
-          <Button variant="ghost" onClick={() => setInviteOpen(false)}>Close</Button>
-        }
-      >
-        <div className="space-y-3 text-sm text-muted-foreground">
-          <p>
-            <span className="font-semibold text-foreground">1.</span> Ask the admin to
-            create the login for <span className="font-semibold text-foreground">{data?.name ?? "this student"}</span>{" "}
-            (student id: <span className="font-mono text-xs">{studentId}</span>).
-          </p>
-          <p>
-            <span className="font-semibold text-foreground">2.</span> Give the student
-            their email and temporary password.
-          </p>
-          <p>
-            <span className="font-semibold text-foreground">3.</span> They sign in on
-            the login page and change the password afterwards.
-          </p>
-          <details className="rounded-xl border border-border bg-surface-muted px-3 py-2">
-            <summary className="cursor-pointer text-xs font-medium text-foreground">
-              Show admin command
-            </summary>
-            <code className="mt-2 block select-all whitespace-pre-wrap break-all font-mono text-xs text-foreground">
-              node --experimental-strip-types scripts/create-student.ts --name "{data?.name ?? "Student Name"}" --email student@example.com --password "change-me" --student-id {studentId}
-            </code>
-          </details>
-        </div>
-      </Modal>
+      />
 
-      <Modal
-        open={noteOpen}
-        onClose={() => setNoteOpen(false)}
-        title={editingNoteId ? "Edit note" : "Add a note"}
-        description="Private — students can never see this."
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setNoteOpen(false)}>Cancel</Button>
-            <Button onClick={onAddNote}>{editingNoteId ? "Save note" : "Add note"}</Button>
-          </>
-        }
-      >
-        <form onSubmit={onAddNote}>
-          <Field label="Note">
-            <Textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} rows={4} placeholder="Homework habits, strengths, next steps…" />
-          </Field>
-        </form>
-      </Modal>
-
-      <Modal
+      <StudentBlockModal
         open={blockOpen}
+        blocked={data.blocked}
+        name={data.name}
+        blocking={blocking}
         onClose={() => setBlockOpen(false)}
-        title={data.blocked ? "Unblock this student?" : "Block this student?"}
-        description={
-          data.blocked
-            ? `${data.name} will regain access to the app and chat right away.`
-            : `${data.name} will be locked out of the app immediately and will not be able to send chat messages until you unblock them. Their data stays intact.`
-        }
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setBlockOpen(false)}>Cancel</Button>
-            <Button
-              variant={data.blocked ? "primary" : "danger"}
-              loading={blocking}
-              onClick={onToggleBlock}
-            >
-              {data.blocked ? "Unblock" : "Block"}
-            </Button>
-          </>
-        }
-      >
-        <p className="text-sm text-muted-foreground">
-          {data.blocked ? "Confirm unblock." : "This cannot be undone except by unblocking again."}
-        </p>
-      </Modal>
+        onConfirm={onToggleBlock}
+      />
     </div>
   );
 }
