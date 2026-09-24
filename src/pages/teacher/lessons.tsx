@@ -1,14 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
-import {
-  BookOpen,
-  Plus,
-  Pencil,
-  Trash2,
-  Paperclip,
-  FileText,
-  X,
-  ExternalLink,
-} from "lucide-react";
+import { BookOpen, Plus } from "lucide-react";
 
 import { useQuery } from "@/hooks/useFirestore";
 import {
@@ -25,25 +16,12 @@ import type { LessonResourceDoc, GroupDoc, StudentDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Field } from "@/components/ui/field";
-import { Modal } from "@/components/ui/modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { useToast } from "@/lib/toast";
-
-const LESSON_ACCEPT =
-  ".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.zip";
-
-function attachmentName(url: string): string {
-  try {
-    const name = decodeURIComponent(url.split("/").pop() ?? "");
-    return name.replace(/^[0-9]+-[a-z0-9]{6}-/, "");
-  } catch {
-    return url.split("/").pop() ?? "Attachment";
-  }
-}
+import { LessonList } from "./lessons/lesson-list";
+import { LessonFormModal } from "./lessons/lesson-form-modal";
 
 export function TeacherLessonsPage() {
   const { toast } = useToast();
@@ -211,164 +189,32 @@ export function TeacherLessonsPage() {
       ) : (
         <Card>
           <CardContent className="p-0">
-            <ul className="divide-y divide-border">
-              {sorted.map((l) => {
-                const groupLabel =
-                  l.data.assignedGroupIds.length === 0
-                    ? "All groups"
-                    : l.data.assignedGroupIds.map((gid) => groupName[gid] ?? "Group").join(", ");
-                return (
-                  <li key={l.id} className="flex items-center gap-3 px-5 py-3.5">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
-                      <BookOpen className="h-5 w-5" aria-hidden />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-foreground">{l.data.title}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {l.data.attachmentUrls.length} file{l.data.attachmentUrls.length === 1 ? "" : "s"} · {groupLabel}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        aria-label="Edit lesson"
-                        className="rounded-lg p-2 text-muted-foreground hover:bg-surface-muted hover:text-foreground"
-                        onClick={() => openEdit(l)}
-                      >
-                        <Pencil className="h-4 w-4" aria-hidden />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Delete lesson"
-                        className="rounded-lg p-2 text-muted-foreground hover:bg-danger-soft hover:text-danger"
-                        onClick={() => setToDelete({ id: l.id, title: l.data.title })}
-                      >
-                        <Trash2 className="h-4 w-4" aria-hidden />
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <LessonList
+              items={sorted}
+              groupName={groupName}
+              onEdit={openEdit}
+              onDeleteAsk={(l) => setToDelete({ id: l.id, title: l.data.title })}
+            />
           </CardContent>
         </Card>
       )}
 
-      <Modal
+      <LessonFormModal
         open={open}
+        editing={editing != null}
+        title={title}
+        attachments={attachments}
+        assignedGroupIds={assignedGroupIds}
+        groups={groups}
+        saving={saving}
+        uploadingFile={uploadingFile}
         onClose={tryClose}
-        title={editing ? "Edit lesson" : "New lesson"}
-        size="lg"
-        footer={
-          <>
-            <Button variant="ghost" onClick={tryClose} disabled={uploadingFile}>Cancel</Button>
-            <Button onClick={onSave} loading={saving} disabled={uploadingFile}>
-              {editing ? "Save lesson" : "Add lesson"}
-            </Button>
-          </>
-        }
-      >
-        <form onSubmit={onSave} className="space-y-4">
-          <Field label="Lesson title" htmlFor="les-title" required>
-            <Input
-              id="les-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Past simple — worksheet 3"
-              required
-            />
-          </Field>
-
-          <Field
-            label="Which groups will see this lesson?"
-            hint="Leave empty to show it to every group."
-          >
-            {groups.docs == null ? (
-              <SkeletonList count={1} />
-            ) : (groups.docs ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">No groups yet. The lesson will be visible to everyone.</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {(groups.docs ?? []).map((g) => {
-                  const on = assignedGroupIds.includes(g.id);
-                  return (
-                    <button
-                      key={g.id}
-                      type="button"
-                      onClick={() => toggleGroup(g.id)}
-                      className={
-                        "rounded-full border px-3 py-1.5 text-sm transition-colors " +
-                        (on
-                          ? "border-primary bg-primary-soft text-primary"
-                          : "border-border bg-surface-muted text-muted-foreground hover:text-foreground")
-                      }
-                    >
-                      {g.data.name} {on ? "✓" : ""}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </Field>
-
-          <Field
-            label="Files (PDF)"
-            hint="The lesson content lives in the PDF."
-            htmlFor="lesson-file-input"
-          >
-            <div className="space-y-2">
-              {attachments.length > 0 ? (
-                <ul className="divide-y divide-border rounded-xl border border-border">
-                  {attachments.map((url) => (
-                    <li key={url} className="flex items-center gap-2 px-3 py-2">
-                      <FileText className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                      <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                        {attachmentName(url)}
-                      </span>
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-surface-muted hover:text-foreground"
-                        aria-label={`Open ${attachmentName(url)}`}
-                      >
-                        <ExternalLink className="h-4 w-4" aria-hidden />
-                      </a>
-                      <button
-                        type="button"
-                        aria-label={`Remove ${attachmentName(url)}`}
-                        onClick={() => removeAttachment(url)}
-                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-danger-soft hover:text-danger"
-                      >
-                        <X className="h-4 w-4" aria-hidden />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              <label
-                htmlFor="lesson-file-input"
-                className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:opacity-50"
-              >
-                <Paperclip className="h-4 w-4" aria-hidden />
-                {uploadingFile ? "Uploading…" : "Attach a PDF"}
-                <input
-                  id="lesson-file-input"
-                  type="file"
-                  accept={LESSON_ACCEPT}
-                  className="hidden"
-                  disabled={uploadingFile}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void onPickFile(f);
-                    e.currentTarget.value = "";
-                  }}
-                />
-              </label>
-            </div>
-          </Field>
-        </form>
-      </Modal>
+        onTitle={setTitle}
+        onToggleGroup={toggleGroup}
+        onPickFile={onPickFile}
+        onRemoveAttachment={removeAttachment}
+        onSave={onSave}
+      />
 
       <ConfirmDialog
         open={confirmDiscard}
