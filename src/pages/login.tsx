@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { signInAnonymously, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { signInAnonymously, signInWithEmailAndPassword, signOut, linkWithCredential, EmailAuthProvider } from "firebase/auth";
 
 import { resolveRoleAfterLogin, useAuth } from "@/lib/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
@@ -37,6 +37,13 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [signinError, setSigninError] = useState<string | null>(null);
   const [signinLoading, setSigninLoading] = useState(false);
+
+  // one-time password setup right after approval (still signed in
+  // anonymously, so linking works immediately — no trip to Settings)
+  const [newPw, setNewPw] = useState("");
+  const [newPw2, setNewPw2] = useState("");
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [pwLoading, setPwLoading] = useState(false);
 
   // The student's own arrival request(s) — shown as live status.
   const myArrivals = useQuery<ArrivalDoc>(
@@ -126,17 +133,80 @@ export function LoginPage() {
   }
 
   const showRequestForm = !latest || latest.data.status === "rejected";
+  const hasPassword =
+    user?.providerData.some((p) => p.providerId === "password") ?? false;
+
+  async function submitPassword(e: FormEvent) {
+    e.preventDefault();
+    setPwError(null);
+    if (!user || !latest) return;
+    if (newPw.length < 6) {
+      setPwError("Password must be at least 6 characters.");
+      return;
+    }
+    if (newPw !== newPw2) {
+      setPwError("Passwords don't match.");
+      return;
+    }
+    setPwLoading(true);
+    try {
+      await linkWithCredential(user, EmailAuthProvider.credential(latest.data.email, newPw));
+      navigate("/student", { replace: true });
+    } catch (err) {
+      setPwError(humanError(err));
+    } finally {
+      setPwLoading(false);
+    }
+  }
 
   const statusPanel =
     latest?.data.status === "accepted" ? (
       <div className="flex items-start gap-3 rounded-xl bg-success-soft p-4 text-success">
         <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
-        <div>
+        <div className="w-full">
           <p className="text-sm font-semibold">Request approved</p>
-          <p className="mt-0.5 text-sm">
-            Your account is ready — opening your space… Once inside, set a
-            password in Settings → Sign-in so you can log back in anytime.
-          </p>
+          {hasPassword ? (
+            <p className="mt-0.5 text-sm">
+              Your account is ready — opening your space…
+            </p>
+          ) : (
+            <form onSubmit={submitPassword} className="mt-3 space-y-3">
+              <p className="text-sm text-foreground">
+                One last step — choose a password so you can sign back in
+                anytime with <span className="font-semibold">{latest.data.email}</span>.
+              </p>
+              <Field label="Choose a password" htmlFor="first-password" required>
+                <Input
+                  id="first-password"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="At least 6 characters"
+                  value={newPw}
+                  onChange={(e) => setNewPw(e.target.value)}
+                  required
+                />
+              </Field>
+              <Field label="Confirm password" htmlFor="first-password2" required>
+                <Input
+                  id="first-password2"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Repeat it"
+                  value={newPw2}
+                  onChange={(e) => setNewPw2(e.target.value)}
+                  required
+                />
+              </Field>
+              {pwError ? (
+                <p role="alert" className="text-sm font-medium text-danger">
+                  {pwError}
+                </p>
+              ) : null}
+              <Button type="submit" loading={pwLoading} className="w-full">
+                Set password & enter
+              </Button>
+            </form>
+          )}
         </div>
       </div>
     ) : latest?.data.status === "rejected" ? (
