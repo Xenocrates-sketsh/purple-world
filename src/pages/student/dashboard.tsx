@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Sparkles, Wallet, MessageSquare, BookOpen, ReceiptText, GraduationCap, FileText, CalendarClock } from "lucide-react";
+import { WelcomeTour, shouldShowWelcomeTour } from "@/components/welcome-tour";
 
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@/hooks/useFirestore";
@@ -99,9 +100,11 @@ export function StudentDashboardPage() {
   const unpaidTotal = unpaid.reduce((sum, p) => sum + (p.data.amount ?? 0), 0);
 
   const name = user?.displayName?.split(" ")[0] || "there";
+  const [tourOpen, setTourOpen] = useState(() => shouldShowWelcomeTour());
 
   return (
     <div>
+      {tourOpen ? <WelcomeTour onDone={() => setTourOpen(false)} /> : null}
       <PageHeader
         title={`Hi ${name} 👋`}
         description={
