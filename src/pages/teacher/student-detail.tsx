@@ -13,6 +13,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { useQuery, useDoc, useDocMap } from "@/hooks/useFirestore";
 import { updateStudent, setStudentGroup, setStudentBlocked } from "@/lib/db/students";
+import { deleteStudentAccount } from "@/lib/db/admin";
 import { allGroupsQuery } from "@/lib/db/groups";
 import { studentPaymentsQuery } from "@/lib/db/payments";
 import { allAssessmentsQuery, studentResultsQuery } from "@/lib/db/assessments";
@@ -27,6 +28,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { useToast } from "@/lib/toast";
@@ -58,6 +60,8 @@ export function TeacherStudentDetailPage() {
   const [saving, setSaving] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const [form, setForm] = useState<StudentFormState | null>(null);
 
@@ -182,6 +186,19 @@ export function TeacherStudentDetailPage() {
     }
   }
 
+  async function onDeleteAccount() {
+    setDeletingAccount(true);
+    try {
+      await deleteStudentAccount(studentId);
+      toast("Student account deleted", { variant: "success" });
+      navigate("/teacher/students", { replace: true });
+    } catch {
+      toast("Could not delete the account", { variant: "error" });
+      setDeletingAccount(false);
+      setDeleteOpen(false);
+    }
+  }
+
   if (student.loading) {
     return (
       <div className="space-y-4">
@@ -290,6 +307,7 @@ export function TeacherStudentDetailPage() {
             onChat={onChat}
             onNewPayment={() => toast("Invoice sheet — coming soon", { variant: "info" })}
             onBlock={() => setBlockOpen(true)}
+            onDelete={() => setDeleteOpen(true)}
           />
 
           {data.linkedUid == null && (
@@ -329,6 +347,17 @@ export function TeacherStudentDetailPage() {
         blocking={blocking}
         onClose={() => setBlockOpen(false)}
         onConfirm={onToggleBlock}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title={`Delete ${data.name}?`}
+        description="This permanently removes the student record, profile, login and private notes. Chat history is kept. This cannot be undone."
+        confirmLabel="Delete forever"
+        destructive
+        loading={deletingAccount}
+        onConfirm={onDeleteAccount}
+        onCancel={() => setDeleteOpen(false)}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import { MessageSquare, CreditCard, ShieldCheck, Ban } from "lucide-react";
+import { MessageSquare, CreditCard, ShieldCheck, Ban, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -8,11 +8,13 @@ export function StudentActionsCard({
   onChat,
   onNewPayment,
   onBlock,
+  onDelete,
 }: {
   blocked: boolean;
   onChat: () => void;
   onNewPayment: () => void;
   onBlock: () => void;
+  onDelete: () => void;
 }) {
   return (
     <Card>
@@ -45,6 +47,13 @@ export function StudentActionsCard({
             Block student
           </Button>
         )}
+        <Button
+          variant="danger"
+          onClick={onDelete}
+          leftIcon={<Trash2 className="h-4 w-4" aria-hidden />}
+        >
+          Delete account
+        </Button>
       </CardContent>
     </Card>
   );
