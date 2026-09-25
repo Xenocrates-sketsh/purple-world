@@ -20,6 +20,7 @@ import { notesQuery, addNote, updateNote, deleteNote } from "@/lib/db/notes";
 import { findConversation, createConversation } from "@/lib/db/chat";
 import { paths } from "@/lib/db/paths";
 import { formatDate } from "@/lib/format";
+import { normalizeDZPhone } from "@/lib/format";
 import type { StudentDoc, GroupDoc, NoteEntryDoc, PaymentDoc, AssessmentDoc, AssessmentResultDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -81,13 +82,23 @@ export function TeacherStudentDetailPage() {
   async function onSave(e: FormEvent) {
     e.preventDefault();
     if (!data || !form) return;
+    const normPhone = form.phone.trim() ? normalizeDZPhone(form.phone) : null;
+    if (form.phone.trim() && !normPhone) {
+      toast("Phone must be a valid Algerian mobile: +213 followed by 5, 6 or 7, then 8 digits.", { variant: "error" });
+      return;
+    }
+    const normParent = form.parentPhone.trim() ? normalizeDZPhone(form.parentPhone) : null;
+    if (form.parentPhone.trim() && !normParent) {
+      toast("Parent phone must be a valid Algerian mobile: +213 followed by 5, 6 or 7, then 8 digits.", { variant: "error" });
+      return;
+    }
     setSaving(true);
     try {
       await updateStudent(studentId, {
         name: form.name.trim(),
         studentNo: form.studentNo.trim(),
-        phone: form.phone.trim() || null,
-        parentPhone: form.parentPhone.trim() || null,
+        phone: normPhone,
+        parentPhone: normParent,
         school: form.school.trim() || null,
         stream: form.stream || null,
         bacInfo: {

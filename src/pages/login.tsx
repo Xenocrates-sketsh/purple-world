@@ -5,7 +5,7 @@ import { signInAnonymously, signInWithEmailAndPassword, signOut, linkWithCredent
 import { resolveRoleAfterLogin, useAuth } from "@/lib/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
 import { humanError } from "@/lib/errors";
-import { isValidEmail } from "@/lib/format";
+import { isValidEmail, normalizeDZPhone, looksLikePhone } from "@/lib/format";
 import { useQuery } from "@/hooks/useFirestore";
 import { myArrivalQuery, createArrival } from "@/lib/db/arrivals";
 import type { ArrivalDoc } from "@/lib/types";
@@ -79,6 +79,21 @@ export function LoginPage() {
       setError("That email address doesn't look right.");
       return;
     }
+    // "Number" accepts a phone or a student no. — validate only phone input
+    // against the Algerian mobile schema (+213 + 5/6/7 + 8 digits).
+    const trimmedNumber = number.trim();
+    let phone: string | null = null;
+    if (trimmedNumber) {
+      if (looksLikePhone(trimmedNumber)) {
+        phone = normalizeDZPhone(trimmedNumber);
+        if (!phone) {
+          setError("Phone number must be a valid Algerian mobile: +213 followed by 5, 6 or 7, then 8 digits.");
+          return;
+        }
+      } else {
+        phone = trimmedNumber;
+      }
+    }
     setLoading(true);
     try {
       const auth = getFirebaseAuth();
@@ -93,7 +108,7 @@ export function LoginPage() {
         name: trimmedName,
         email: trimmedEmail,
         school: school.trim() || null,
-        number: number.trim() || null,
+        number: phone,
         age: age ? Math.round(Number(age)) : null,
         uid,
       });

@@ -6,6 +6,7 @@ import { useQuery, useDocMap } from "@/hooks/useFirestore";
 import { allStudentsQuery, createStudent, setStudentActive } from "@/lib/db/students";
 import { allGroupsQuery } from "@/lib/db/groups";
 import { BAC_STREAMS } from "@/lib/constants";
+import { normalizeDZPhone } from "@/lib/format";
 import type { StudentDoc, GroupDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -127,6 +128,17 @@ export function TeacherStudentsPage() {
       setError("Name and student number are required.");
       return;
     }
+    // Algerian mobile schema: +213 + 5/6/7 + 8 digits (normalized on save).
+    const normPhone = phone.trim() ? normalizeDZPhone(phone) : null;
+    if (phone.trim() && !normPhone) {
+      setError("Phone must be a valid Algerian mobile: +213 followed by 5, 6 or 7, then 8 digits.");
+      return;
+    }
+    const normParent = parentPhone.trim() ? normalizeDZPhone(parentPhone) : null;
+    if (parentPhone.trim() && !normParent) {
+      setError("Parent phone must be a valid Algerian mobile: +213 followed by 5, 6 or 7, then 8 digits.");
+      return;
+    }
     setSaving(true);
     try {
       const id = await createStudent({
@@ -134,8 +146,8 @@ export function TeacherStudentsPage() {
         studentNo: studentNo.trim(),
         email: null,
         age: null,
-        phone: phone.trim() || null,
-        parentPhone: parentPhone.trim() || null,
+        phone: normPhone,
+        parentPhone: normParent,
         school: school.trim() || null,
         stream: stream || null,
         groupId: groupId || null,

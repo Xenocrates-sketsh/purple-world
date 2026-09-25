@@ -94,6 +94,35 @@ export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+/**
+ * Algerian mobile numbers: +213 followed by 5, 6 or 7, then 8 digits.
+ * Accepts "+213…", "0213…"-less local "05/06/07…" and spaced/dashed input.
+ * Returns the normalized "+213XXXXXXXXX" form, or null when invalid.
+ * No OTP/confirmation — schema check only.
+ */
+export function normalizeDZPhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const digits = raw.trim().replace(/[\s.\-()]/g, "");
+  let rest: string | null = null;
+  if (/^\+213[567]\d{8}$/.test(digits)) {
+    rest = digits.slice(4);
+  } else if (/^00213[567]\d{8}$/.test(digits)) {
+    rest = digits.slice(5);
+  } else if (/^0[567]\d{8}$/.test(digits)) {
+    rest = digits.slice(1);
+  } else if (/^[567]\d{8}$/.test(digits)) {
+    rest = digits;
+  }
+  if (!rest) return null;
+  return `+213${rest}`;
+}
+
+/** True for values that look like a phone attempt (vs a student number). */
+export function looksLikePhone(raw: string): boolean {
+  const v = raw.trim();
+  return v.startsWith("+") || /^0/.test(v) || /^[\d\s.\-()]{9,}$/.test(v);
+}
+
 export function pluralize(n: number, word: string, plural?: string): string {
   return `${n} ${n === 1 ? word : (plural ?? `${word}s`)}`;
 }
