@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { signInAnonymously, signInWithEmailAndPassword, signOut, linkWithCredential, EmailAuthProvider } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut, linkWithCredential, EmailAuthProvider, createUserWithEmailAndPassword } from "firebase/auth";
 
 import { resolveRoleAfterLogin, useAuth } from "@/lib/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
@@ -43,12 +43,22 @@ export function LoginPage() {
       setError("That email address doesn't look right.");
       return;
     }
+    if (reqPassword.length < 6) {
+      setError("Choose a password of at least 6 characters — it stays yours if you're accepted.");
+      return;
+    }
+    if (reqPassword !== reqPassword2) {
+      setError("Passwords don't match.");
+      return;
+    }
     goStep(2);
   }
 
   // request form
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [reqPassword, setReqPassword] = useState("");
+  const [reqPassword2, setReqPassword2] = useState("");
   const [school, setSchool] = useState("");
   const [number, setNumber] = useState("");
   const [age, setAge] = useState("");
@@ -127,10 +137,15 @@ export function LoginPage() {
     try {
       const auth = getFirebaseAuth();
       const current = auth.currentUser;
+      // The student owns this password from the start: create the real
+      // email/password account right away. It unlocks nothing until the
+      // teacher approves (no role = no access), and stays valid after.
       let uid = current?.uid ?? null;
-      if (!uid || !current?.isAnonymous) {
-        if (current && !current.isAnonymous) await signOut(auth);
-        const cred = await signInAnonymously(auth);
+      if (current && !current.isAnonymous && current.email === trimmedEmail) {
+        uid = current.uid;
+      } else {
+        if (current) await signOut(auth);
+        const cred = await createUserWithEmailAndPassword(auth, trimmedEmail, reqPassword);
         uid = cred.user.uid;
       }
       await createArrival({
@@ -296,7 +311,7 @@ export function LoginPage() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "request"
-              ? "No password needed — just your name and email. Your teacher approves new students."
+              ? "Choose your password now — it stays yours once your teacher approves you."
               : "Student sign-in. Teachers use the teacher sign-in."}
           </p>
 
@@ -345,6 +360,30 @@ export function LoginPage() {
                           required
                         />
                       </Field>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Field label="Password" htmlFor="req-password" required hint="Yours to keep if accepted">
+                          <Input
+                            id="req-password"
+                            type="password"
+                            autoComplete="new-password"
+                            placeholder="At least 6 characters"
+                            value={reqPassword}
+                            onChange={(e) => setReqPassword(e.target.value)}
+                            required
+                          />
+                        </Field>
+                        <Field label="Confirm" htmlFor="req-password2" required>
+                          <Input
+                            id="req-password2"
+                            type="password"
+                            autoComplete="new-password"
+                            placeholder="Repeat it"
+                            value={reqPassword2}
+                            onChange={(e) => setReqPassword2(e.target.value)}
+                            required
+                          />
+                        </Field>
+                      </div>
                     </>
                   ) : null}
                   {step === 2 ? (
