@@ -24,6 +24,28 @@ export function LoginPage() {
 
   const [mode, setMode] = useState<Mode>("request");
 
+  // multi-step request flow: 1 = name+email, 2 = school+number, 3 = age
+  const [step, setStep] = useState(1);
+  const [direction, setDirection] = useState<"forward" | "back">("forward");
+
+  function goStep(next: number) {
+    setDirection(next > step ? "forward" : "back");
+    setStep(next);
+    setError(null);
+  }
+
+  function nextFromStep1() {
+    if (!name.trim() || !email.trim()) {
+      setError("Enter your full name and email.");
+      return;
+    }
+    if (!isValidEmail(email.trim().toLowerCase())) {
+      setError("That email address doesn't look right.");
+      return;
+    }
+    goStep(2);
+  }
+
   // request form
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -80,6 +102,12 @@ export function LoginPage() {
       setError("That email address doesn't look right.");
       return;
     }
+    const ageNum = age ? Math.round(Number(age)) : null;
+    if (ageNum == null || ageNum < 17 || ageNum > 25) {
+      setError("Please tell us your age — between 17 and 25.");
+      goStep(3);
+      return;
+    }
     // "Number" accepts a phone or a student no. — validate only phone input
     // against the Algerian mobile schema (+213 + 5/6/7 + 8 digits).
     const trimmedNumber = number.trim();
@@ -110,7 +138,7 @@ export function LoginPage() {
         email: trimmedEmail,
         school: school.trim() || null,
         number: phone,
-        age: age ? Math.round(Number(age)) : null,
+        age: ageNum,
         uid,
       });
     } catch (err) {
@@ -258,11 +286,11 @@ export function LoginPage() {
         />
         <div className="absolute inset-0 bg-background/75" />
       </div>
-      <div className="relative w-full max-w-sm">
+      <div className="relative w-full max-w-xs sm:max-w-sm">
         <Link to="/" className="mb-8 flex justify-center" aria-label="Back to welcome">
           <Brand />
         </Link>
-        <div className="card p-6">
+        <div className="card p-5 sm:p-6">
           <h1 className="text-lg font-bold text-foreground">
             {mode === "request" ? "Join Purple World" : "Welcome back"}
           </h1>
@@ -277,68 +305,114 @@ export function LoginPage() {
           ) : null}
 
           {mode === "request" && showRequestForm ? (
-            <form onSubmit={submitRequest} className="mt-6 space-y-4">
-              <Field label="Full name" htmlFor="req-name" required>
-                <Input
-                  id="req-name"
-                  autoComplete="name"
-                  placeholder="Ahmed Benali"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </Field>
-              <Field label="Email" htmlFor="req-email" required>
-                <Input
-                  id="req-email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </Field>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="School" htmlFor="req-school">
-                  <Input
-                    id="req-school"
-                    placeholder="Lycee…"
-                    value={school}
-                    onChange={(e) => setSchool(e.target.value)}
+            <div className="mt-6">
+              <div className="mb-4 flex items-center justify-center gap-1.5" aria-hidden>
+                {[1, 2, 3].map((i) => (
+                  <span
+                    key={i}
+                    className={
+                      "h-1.5 rounded-full transition-all " +
+                      (i === step ? "w-6 bg-primary" : i < step ? "w-1.5 bg-primary/60" : "w-1.5 bg-border")
+                    }
                   />
-                </Field>
-                <Field label="Number" htmlFor="req-number">
-                  <Input
-                    id="req-number"
-                    placeholder="Phone or student no."
-                    value={number}
-                    onChange={(e) => setNumber(e.target.value)}
-                  />
-                </Field>
+                ))}
               </div>
-              <Field label="Age" htmlFor="req-age">
-                <Input
-                  id="req-age"
-                  type="number"
-                  min={10}
-                  max={99}
-                  placeholder="17"
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                />
-              </Field>
+              <form onSubmit={submitRequest} className="space-y-4">
+                <div
+                  key={step}
+                  className={direction === "forward" ? "animate-slide-in-right space-y-4" : "animate-slide-in-left space-y-4"}
+                >
+                  {step === 1 ? (
+                    <>
+                      <Field label="Full name" htmlFor="req-name" required>
+                        <Input
+                          id="req-name"
+                          autoComplete="name"
+                          placeholder="Ahmed Benali"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required
+                        />
+                      </Field>
+                      <Field label="Email" htmlFor="req-email" required>
+                        <Input
+                          id="req-email"
+                          type="email"
+                          autoComplete="email"
+                          placeholder="you@example.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                        />
+                      </Field>
+                    </>
+                  ) : null}
+                  {step === 2 ? (
+                    <>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Field label="School" htmlFor="req-school">
+                          <Input
+                            id="req-school"
+                            placeholder="Lycee…"
+                            value={school}
+                            onChange={(e) => setSchool(e.target.value)}
+                          />
+                        </Field>
+                        <Field label="Number" htmlFor="req-number">
+                          <Input
+                            id="req-number"
+                            placeholder="Phone or student no."
+                            value={number}
+                            onChange={(e) => setNumber(e.target.value)}
+                          />
+                        </Field>
+                      </div>
+                    </>
+                  ) : null}
+                  {step === 3 ? (
+                    <Field label="How old are you?" htmlFor="req-age" required hint="Just so your teacher knows your class level.">
+                      <Input
+                        id="req-age"
+                        type="number"
+                        min={17}
+                        max={25}
+                        placeholder="17 – 25"
+                        value={age}
+                        onChange={(e) => setAge(e.target.value)}
+                        required
+                      />
+                    </Field>
+                  ) : null}
+                </div>
 
-              {error ? (
-                <p role="alert" className="text-sm font-medium text-danger">
-                  {error}
-                </p>
-              ) : null}
+                {error ? (
+                  <p role="alert" className="text-sm font-medium text-danger">
+                    {error}
+                  </p>
+                ) : null}
 
-              <Button type="submit" loading={loading} className="w-full">
-                {latest?.data.status === "rejected" ? "Submit a new request" : "Request to join"}
-              </Button>
-            </form>
+                <div className="flex gap-2">
+                  {step > 1 ? (
+                    <Button type="button" variant="secondary" onClick={() => goStep(step - 1)} className="flex-1">
+                      Back
+                    </Button>
+                  ) : null}
+                  {step < 3 ? (
+                    <Button
+                      type="button"
+                      onClick={() => (step === 1 ? nextFromStep1() : goStep(3))}
+                      className="flex-1"
+                    >
+                      Next
+                    </Button>
+                  ) : (
+                    <Button type="submit" loading={loading} className="flex-1">
+                      {latest?.data.status === "rejected" ? "Submit a new request" : "Request to join"}
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </div>
           ) : (
             <form onSubmit={submitSignin} className="mt-6 space-y-4">
               <Field label="Email" htmlFor="signin-email">

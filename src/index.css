@@ -238,6 +238,34 @@
   animation: toast-in 0.2s ease-out both;
 }
 
+/* Multi-step form side slides */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.25s ease-out both;
+}
+.animate-slide-in-left {
+  animation: slide-in-left 0.25s ease-out both;
+}
+
 /* Welcome hero: slow ambient drift + staggered rise-in */
 @keyframes pw-ambient {
   0%,
