@@ -134,7 +134,8 @@ export function LoginPage() {
         <div>
           <p className="text-sm font-semibold">Request approved</p>
           <p className="mt-0.5 text-sm">
-            Your account is ready — opening your space…
+            Your account is ready — opening your space… Once inside, set a
+            password in Settings → Sign-in so you can log back in anytime.
           </p>
         </div>
       </div>

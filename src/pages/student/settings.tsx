@@ -8,6 +8,7 @@ import { useToast } from "@/lib/toast";
 import { APP_NAME, IS_PRODUCTION } from "@/lib/config";
 import { PageHeader } from "@/components/page-header";
 import { ProfileForm } from "@/components/settings/profile-form";
+import { SecurityCard } from "@/components/settings/security-card";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -40,6 +41,7 @@ export function StudentSettingsPage() {
         <ProfileForm />
 
         <div className="space-y-6">
+          <SecurityCard />
           <Card>
             <CardHeader title="Notifications" description="In-app alerts for new activity." />
             <CardContent>
