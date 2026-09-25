@@ -281,7 +281,7 @@ export function LoginPage() {
             </form>
           )}
 
-          <div className="mt-4 flex items-center justify-between text-sm">
+          <div className="mt-4 flex flex-col gap-2 text-sm">
             <button
               type="button"
               onClick={() => setMode(mode === "request" ? "signin" : "request")}
