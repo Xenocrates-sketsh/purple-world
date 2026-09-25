@@ -12,6 +12,7 @@ import { Brand } from "@/components/brand";
 import { WelcomePage } from "@/pages/welcome";import { LoginPage } from "@/pages/login";
 import { TeacherLoginPage } from "@/pages/teacher-login";
 import { ForgotPasswordPage } from "@/pages/forgot-password";
+import { DesignGalleryPage } from "@/pages/design";
 
 import { TeacherLayout } from "@/components/layout/teacher-layout";
 import { StudentLayout } from "@/components/layout/student-layout";
@@ -129,6 +130,7 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/login/teacher" element={<TeacherLoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/design" element={<DesignGalleryPage />} />
 
         <Route element={<RouteGate role="teacher" />}>
           <Route path="/teacher" element={<TeacherLayout />}>
