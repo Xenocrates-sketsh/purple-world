@@ -6,6 +6,7 @@ import { resolveRoleAfterLogin, useAuth } from "@/lib/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
 import { humanError } from "@/lib/errors";
 import { isValidEmail, normalizeDZPhone, looksLikePhone } from "@/lib/format";
+import loginBg from "@/assets/login-bg.png";
 import { useQuery } from "@/hooks/useFirestore";
 import { myArrivalQuery, createArrival } from "@/lib/db/arrivals";
 import type { ArrivalDoc } from "@/lib/types";
@@ -247,8 +248,17 @@ export function LoginPage() {
     ) : null;
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-6">
-      <div className="w-full max-w-sm">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-6">
+      <div aria-hidden className="absolute inset-0">
+        <img
+          src={loginBg}
+          alt=""
+          draggable={false}
+          className="h-full w-full scale-105 object-cover blur-md"
+        />
+        <div className="absolute inset-0 bg-background/75" />
+      </div>
+      <div className="relative w-full max-w-sm">
         <Link to="/" className="mb-8 flex justify-center" aria-label="Back to welcome">
           <Brand />
         </Link>
