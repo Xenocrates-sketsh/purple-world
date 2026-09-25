@@ -131,12 +131,12 @@ export function TeacherStudentsPage() {
     // Algerian mobile schema: +213 + 5/6/7 + 8 digits (normalized on save).
     const normPhone = phone.trim() ? normalizeDZPhone(phone) : null;
     if (phone.trim() && !normPhone) {
-      setError("Phone must be a valid Algerian mobile: +213 followed by 5, 6 or 7, then 8 digits.");
+      setError("Number is wrong.");
       return;
     }
     const normParent = parentPhone.trim() ? normalizeDZPhone(parentPhone) : null;
     if (parentPhone.trim() && !normParent) {
-      setError("Parent phone must be a valid Algerian mobile: +213 followed by 5, 6 or 7, then 8 digits.");
+      setError("Number is wrong.");
       return;
     }
     setSaving(true);

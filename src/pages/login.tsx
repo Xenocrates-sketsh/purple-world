@@ -87,7 +87,7 @@ export function LoginPage() {
       if (looksLikePhone(trimmedNumber)) {
         phone = normalizeDZPhone(trimmedNumber);
         if (!phone) {
-          setError("Phone number must be a valid Algerian mobile: +213 followed by 5, 6 or 7, then 8 digits.");
+          setError("Number is wrong.");
           return;
         }
       } else {

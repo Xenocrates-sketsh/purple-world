@@ -84,12 +84,12 @@ export function TeacherStudentDetailPage() {
     if (!data || !form) return;
     const normPhone = form.phone.trim() ? normalizeDZPhone(form.phone) : null;
     if (form.phone.trim() && !normPhone) {
-      toast("Phone must be a valid Algerian mobile: +213 followed by 5, 6 or 7, then 8 digits.", { variant: "error" });
+      toast("Number is wrong.", { variant: "error" });
       return;
     }
     const normParent = form.parentPhone.trim() ? normalizeDZPhone(form.parentPhone) : null;
     if (form.parentPhone.trim() && !normParent) {
-      toast("Parent phone must be a valid Algerian mobile: +213 followed by 5, 6 or 7, then 8 digits.", { variant: "error" });
+      toast("Number is wrong.", { variant: "error" });
       return;
     }
     setSaving(true);
