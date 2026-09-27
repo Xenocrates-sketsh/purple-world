@@ -148,7 +148,15 @@
   }
 
   .skeleton {
-    @apply animate-pulse rounded-lg bg-primary-muted/70;
+    @apply rounded-lg;
+    background: linear-gradient(
+      100deg,
+      hsl(var(--primary-muted) / 0.35) 30%,
+      hsl(var(--primary) / 0.28) 50%,
+      hsl(var(--primary-muted) / 0.35) 70%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-sheen 1.6s ease-in-out infinite;
   }
 
   .badge {
@@ -305,6 +313,31 @@
 }
 .animate-tour-button {
   animation: tour-button 0.5s ease-out both;
+}
+
+/* Dark purple skeleton sheen */
+@keyframes skeleton-sheen {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Cinematic fullscreen crossfade: slow settle, no slides or wipes */
+@keyframes tour-cinematic {
+  from {
+    opacity: 0;
+    transform: scale(1.07);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-tour-cinematic {
+  animation: tour-cinematic 1.2s cubic-bezier(0.22, 0.9, 0.3, 1) both;
 }
 
 /* Welcome hero: slow ambient drift + staggered rise-in */

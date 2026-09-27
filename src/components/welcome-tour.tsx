@@ -24,15 +24,15 @@ function markWelcomeTourSeen() {
 }
 
 const SLIDES = [
-  { src: tourWelcome, alt: "Welcome to Purple World", anim: "animate-tour-enter", ctaDelay: 1000 },
-  { src: tourUses, alt: "What this website is for", anim: "animate-tour-slide", ctaDelay: 5000 },
-  { src: tourThanks, alt: "Thank you for joining Purple World", anim: "animate-tour-slide", ctaDelay: 900 },
+  { src: tourWelcome, alt: "Welcome to Purple World", ctaDelay: 1000 },
+  { src: tourUses, alt: "What this website is for", ctaDelay: 5000 },
+  { src: tourThanks, alt: "Thank you for joining Purple World", ctaDelay: 900 },
 ];
 
 /**
- * First-run welcome tour for new students: gentle welcome appearance,
- * calm slide into the guided tour, 5s to read, then a soft button —
- * same motion language into the thank-you screen and entry.
+ * First-run welcome tour: fullscreen scenes with a slow cinematic
+ * crossfade (no slides, no wipes) — welcome, guided tour with 5s to
+ * read, thank-you, then entry.
  */
 export function WelcomeTour({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(0);
@@ -52,43 +52,45 @@ export function WelcomeTour({ onDone }: { onDone: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex flex-col bg-background"
+      className="fixed inset-0 z-[90] bg-background"
       role="dialog"
       aria-modal="true"
       aria-label="Welcome tour"
     >
-      <div className="flex justify-end p-4">
+      <img
+        key={step}
+        src={slide.src}
+        alt={slide.alt}
+        draggable={false}
+        className="animate-tour-cinematic absolute inset-0 h-full w-full object-cover"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/50 to-transparent"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/60 to-transparent"
+      />
+
+      <div className="absolute right-4 top-4">
         <button
           type="button"
           onClick={finish}
-          className="rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground"
+          className="rounded-full bg-black/30 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/50"
         >
           Skip
         </button>
       </div>
 
-      <div className="relative flex min-h-0 flex-1 items-center justify-center px-4 pb-2">
-        <img
-          key={step}
-          src={slide.src}
-          alt={slide.alt}
-          draggable={false}
-          className={`max-h-full w-auto max-w-full rounded-2xl object-contain shadow-xl ${slide.anim}`}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background to-transparent"
-        />
-      </div>
-
-      <div className="flex min-h-[88px] items-center justify-between gap-3 px-5 pb-8">
+      <div className="absolute inset-x-0 bottom-0 flex min-h-[88px] items-center justify-between gap-3 px-5 pb-8">
         <div className="flex items-center gap-1.5" aria-hidden>
           {SLIDES.map((_, i) => (
             <span
               key={i}
               className={
                 "h-1.5 rounded-full transition-all " +
-                (i === step ? "w-6 bg-primary" : "w-1.5 bg-border")
+                (i === step ? "w-6 bg-white" : "w-1.5 bg-white/40")
               }
             />
           ))}
