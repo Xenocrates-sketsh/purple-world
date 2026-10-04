@@ -6,32 +6,7 @@ import { SILK_ENABLED } from "@/lib/config";
 /** Brand palette, dark → light (baked into a 256-step LUT). */
 const PURPLE_SILK = ["#0c0714", "#2e1065", "#6d28d9", "#a855f7", "#e9d5ff"];
 
-/** Rotating palette set — the waves drift through these over time. */
-const PALETTE_SET: string[][] = [
-  PURPLE_SILK,
-  ["#071018", "#0e3a4a", "#0ea5e9", "#818cf8", "#d9f6ff"],
-  ["#160a24", "#7c2d12", "#f97316", "#ec4899", "#ffe4ef"],
-  ["#04121f", "#123a6d", "#2563eb", "#22d3ee", "#e0f7ff"],
-  ["#0e0a1c", "#3b0764", "#9333ea", "#f0abfc", "#fdf4ff"],
-];
-
-function randomPalette(): string[] {
-  return PALETTE_SET[Math.floor(Math.random() * PALETTE_SET.length)] ?? PURPLE_SILK;
-}
-
 type Lut = { r: Uint8Array; g: Uint8Array; b: Uint8Array };
-
-function blendLuts(a: Lut, b: Lut, t: number): Lut {
-  const r = new Uint8Array(256);
-  const g = new Uint8Array(256);
-  const bch = new Uint8Array(256);
-  for (let i = 0; i < 256; i++) {
-    r[i] = a.r[i] + (b.r[i] - a.r[i]) * t;
-    g[i] = a.g[i] + (b.g[i] - a.g[i]) * t;
-    bch[i] = a.b[i] + (b.b[i] - a.b[i]) * t;
-  }
-  return { r, g, b: bch };
-}
 
 /** Noise overlay: feTurbulence SVG inlined as data URI, no network needed. */
 const GRAIN_URL = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
@@ -127,17 +102,8 @@ export function ShaderWaves({
     if (!ctx) return;
 
     const lut = buildLut(paletteKey.split(","));
-    // Palette drift: HOLD_MS showing one palette, then MELT_MS melting into
-    // a guaranteed-different one. Absolute timestamps — no drift, no snaps.
-    // Melt frames are precomputed once per cycle: zero per-frame allocation.
-    const HOLD_MS = 10000;
-    const MELT_MS = 5000;
-    const MELT_STEPS = 24;
-    let currentLut: Lut = lut;
-    let currentKey = paletteKey;
-    let phase: "hold" | "melt" = "hold";
-    let phaseStart = performance.now();
-    let meltFrames: Lut[] = [];
+    // Purple only: a single baked palette, no cycling.
+    const currentLut: Lut = lut;
     const off = document.createElement("canvas");
     const offCtx = off.getContext("2d");
     if (!offCtx) return;
@@ -219,35 +185,7 @@ export function ShaderWaves({
 
     const loop = (now: number) => {
       const t = ((now - start) / 1000) * safeSpeed;
-      if (phase === "hold" && now - phaseStart >= HOLD_MS) {
-        const from = currentLut;
-        let next = randomPalette();
-        let guard = 0;
-        while (next.join() === currentKey && guard++ < 10) next = randomPalette();
-        const to = buildLut(next);
-        meltFrames = [];
-        for (let s = 0; s < MELT_STEPS; s++) {
-          meltFrames.push(blendLuts(from, to, s / (MELT_STEPS - 1)));
-        }
-        currentKey = next.join();
-        currentLut = to;
-        phase = "melt";
-        phaseStart = now;
-      }
-      let cur = currentLut;
-      if (phase === "melt") {
-        if (now - phaseStart >= MELT_MS) {
-          phase = "hold";
-          phaseStart = now;
-          meltFrames = [];
-        } else if (meltFrames.length > 0) {
-          const k = Math.min(
-            MELT_STEPS - 1,
-            Math.floor(((now - phaseStart) / MELT_MS) * MELT_STEPS)
-          );
-          cur = meltFrames[Math.max(0, k)];
-        }
-      }
+      const cur = currentLut;
       const p = pointerRef.current;
       const targetX = p.active ? p.x : 0;
       const targetY = p.active ? p.y : 0;

@@ -1,4 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+
+import { getFirebaseStorage } from "./firebase";
 
 const env = import.meta.env;
 
@@ -24,19 +27,15 @@ export function getSupabase(): SupabaseClient {
   return client;
 }
 
-/** Upload an avatar to the public `avatars` bucket and return its public URL. */
+/** Upload an avatar via Firebase Storage (owner-only rules) and return its URL. */
 export async function uploadAvatar(
   uid: string,
   file: File
 ): Promise<string> {
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-  const path = `${uid}/avatar.${ext}`;
-  const { error } = await getSupabase()
-    .storage.from(AVATAR_BUCKET)
-    .upload(path, file, { contentType: file.type, upsert: true });
-  if (error) throw error;
-  const { data } = getSupabase().storage.from(AVATAR_BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+  const storageRef = ref(getFirebaseStorage(), `avatars/${uid}/avatar.${ext}`);
+  await uploadBytes(storageRef, file, { contentType: file.type });
+  return getDownloadURL(storageRef);
 }
 
 /**
