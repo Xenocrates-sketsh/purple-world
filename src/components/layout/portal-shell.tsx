@@ -9,6 +9,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
 import { ChatLauncher } from "./chat-launcher";
+import { SilkBackground } from "@/components/silk-background";
 import { fruitAvatarSrc } from "@/lib/constants";
 import type { NavItem } from "./nav-config";
 
@@ -79,6 +80,7 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
 
   return (
     <div className="min-h-screen bg-background">
+      <SilkBackground />
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border bg-surface/60 p-4 lg:flex">
         <Brand subtitle className="px-2 py-2" />

@@ -29,4 +29,7 @@ export const isFirebaseConfigured =
 /** Deployment environment label shown in the UI (dev / preview / production). */
 export const APP_ENV = (env.VITE_APP_ENV ?? "development").toLowerCase();
 
+/** Living wave background behind the app. Kill-switch: VITE_SILK=off. */
+export const SILK_ENABLED = (env.VITE_SILK ?? "on").toLowerCase() !== "off";
+
 export const IS_PRODUCTION = APP_ENV === "production";
