@@ -15,9 +15,8 @@ const PALETTE_SET: string[][] = [
   ["#0e0a1c", "#3b0764", "#9333ea", "#f0abfc", "#fdf4ff"],
 ];
 
-function randomPalette(except: string[]): string[] {
-  const pool = PALETTE_SET.filter((p) => p.join() !== except.join());
-  return pool[Math.floor(Math.random() * pool.length)] ?? PURPLE_SILK;
+function randomPalette(): string[] {
+  return PALETTE_SET[Math.floor(Math.random() * PALETTE_SET.length)] ?? PURPLE_SILK;
 }
 
 type Lut = { r: Uint8Array; g: Uint8Array; b: Uint8Array };
@@ -128,12 +127,17 @@ export function ShaderWaves({
     if (!ctx) return;
 
     const lut = buildLut(paletteKey.split(","));
-    // Palette drift: hold each palette ~20s, crossfade over ~5s.
-    let lutFrom: Lut = lut;
-    let lutTo: Lut = buildLut(randomPalette(paletteKey.split(",")));
-    let blend = 1;
-    let lastSwitch = performance.now();
-    const activeLut = (): Lut => (blend >= 1 ? lutFrom : blendLuts(lutFrom, lutTo, blend));
+    // Palette drift: HOLD_MS showing one palette, then MELT_MS melting into
+    // a guaranteed-different one. Absolute timestamps — no drift, no snaps.
+    // Melt frames are precomputed once per cycle: zero per-frame allocation.
+    const HOLD_MS = 10000;
+    const MELT_MS = 5000;
+    const MELT_STEPS = 24;
+    let currentLut: Lut = lut;
+    let currentKey = paletteKey;
+    let phase: "hold" | "melt" = "hold";
+    let phaseStart = performance.now();
+    let meltFrames: Lut[] = [];
     const off = document.createElement("canvas");
     const offCtx = off.getContext("2d");
     if (!offCtx) return;
@@ -158,9 +162,8 @@ export function ShaderWaves({
       image = offCtx.createImageData(bufW, bufH);
     };
 
-    const renderField = (t: number, ox: number, oy: number) => {
+    const renderField = (t: number, ox: number, oy: number, cur: Lut) => {
       if (!image) return;
-      const cur = activeLut();
       const data = image.data;
       const aspect = bufW / bufH || 1;
       const freq = 3 / safeScale;
@@ -206,33 +209,51 @@ export function ShaderWaves({
     resize();
 
     if (reduced) {
-      renderField(0.6, 0, 0);
+      renderField(0.6, 0, 0, currentLut);
       return () => ro.disconnect();
     }
 
     let curX = 0;
     let curY = 0;
     const start = performance.now();
-    let prev = start;
 
     const loop = (now: number) => {
-      const dt = Math.min(100, now - prev);
-      prev = now;
       const t = ((now - start) / 1000) * safeSpeed;
-      if (now - lastSwitch > 15000) {
-        lutFrom = activeLut();
-        lutTo = buildLut(randomPalette([]));
-        if (lutTo === lutFrom) lutTo = buildLut(PURPLE_SILK);
-        blend = 0;
-        lastSwitch = now;
+      if (phase === "hold" && now - phaseStart >= HOLD_MS) {
+        const from = currentLut;
+        let next = randomPalette();
+        let guard = 0;
+        while (next.join() === currentKey && guard++ < 10) next = randomPalette();
+        const to = buildLut(next);
+        meltFrames = [];
+        for (let s = 0; s < MELT_STEPS; s++) {
+          meltFrames.push(blendLuts(from, to, s / (MELT_STEPS - 1)));
+        }
+        currentKey = next.join();
+        currentLut = to;
+        phase = "melt";
+        phaseStart = now;
       }
-      if (blend < 1) blend = Math.min(1, blend + dt / 5000);
+      let cur = currentLut;
+      if (phase === "melt") {
+        if (now - phaseStart >= MELT_MS) {
+          phase = "hold";
+          phaseStart = now;
+          meltFrames = [];
+        } else if (meltFrames.length > 0) {
+          const k = Math.min(
+            MELT_STEPS - 1,
+            Math.floor(((now - phaseStart) / MELT_MS) * MELT_STEPS)
+          );
+          cur = meltFrames[Math.max(0, k)];
+        }
+      }
       const p = pointerRef.current;
       const targetX = p.active ? p.x : 0;
       const targetY = p.active ? p.y : 0;
       curX += (targetX - curX) * 0.06;
       curY += (targetY - curY) * 0.06;
-      renderField(t, curX * 0.9, curY * 0.9);
+      renderField(t, curX * 0.9, curY * 0.9, cur);
       rafRef.current = requestAnimationFrame(loop);
     };
 
