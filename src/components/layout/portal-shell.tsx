@@ -79,7 +79,7 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
   const moreItems = [...secondaryNav];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="isolate min-h-screen bg-background">
       <SilkBackground />
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border bg-surface/60 p-4 lg:flex">
