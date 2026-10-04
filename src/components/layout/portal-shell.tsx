@@ -156,13 +156,13 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "flex flex-1 flex-col items-center gap-1 rounded-lg px-1 py-2.5 text-[11px] font-medium transition-colors",
+                  "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg px-1 py-2.5 text-[11px] font-medium transition-colors",
                   active ? "text-primary" : "text-muted-foreground"
                 )}
                 aria-current={active ? "page" : undefined}
               >
-                <Icon className="h-7 w-7" aria-hidden />
-                {item.label}
+                <Icon className="h-7 w-7 shrink-0" aria-hidden />
+                <span className="truncate">{item.label}</span>
               </NavLink>
             );
           })}
