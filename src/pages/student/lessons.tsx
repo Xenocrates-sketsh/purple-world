@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
+import { useGraceLoading } from "@/hooks/useGraceLoading";
 import { cn } from "@/lib/cn";
 import type { LessonResourceDoc } from "@/lib/types";
 
@@ -48,6 +49,7 @@ export function StudentLessonsPage() {
       error: allGroups.error ?? myGroup.error ?? null,
     };
   }, [allGroups.docs, allGroups.loading, allGroups.error, myGroup.docs, myGroup.loading, myGroup.error]);
+  const lessonsBusy = useGraceLoading(lessons.loading);
 
   // TEMPORARY diagnostic ping — reports what this client actually saw so we
   // can diagnose the empty-list report. Fires once when the query settles.
@@ -85,7 +87,7 @@ export function StudentLessonsPage() {
         <p className="rounded-xl bg-danger-soft px-3 py-2.5 text-xs text-danger">
           Couldn't load lessons ({String((lessons.error as { code?: unknown })?.code ?? "unknown")}) — check your connection and pull to refresh. If it persists, tell your teacher.
         </p>
-      ) : lessons.loading ? (
+      ) : lessonsBusy ? (
         <SkeletonList count={3} />
       ) : visible.length === 0 ? (
         <EmptyState

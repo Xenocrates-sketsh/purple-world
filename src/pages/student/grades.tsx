@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
+import { useGraceLoading } from "@/hooks/useGraceLoading";
 
 export function StudentGradesPage() {
   const { userDoc } = useAuth();
@@ -21,6 +22,7 @@ export function StudentGradesPage() {
   const student = useDoc<StudentDoc>(studentId ? paths.students(studentId) : null);
   const results = useQuery<AssessmentResultDoc>((db) => studentResultsQuery(db, studentId), [studentId]);
   const assessments = useQuery<AssessmentDoc>(allAssessmentsQuery);
+  const resultsBusy = useGraceLoading(results.loading);
 
   const byId = useMemo(() => new Map(assessments.docs?.map((a) => [a.id, a.data])), [assessments.docs]);
 
@@ -75,7 +77,7 @@ export function StudentGradesPage() {
         </div>
       ) : null}
 
-      {results.loading ? (
+      {resultsBusy ? (
         <SkeletonList count={4} />
       ) : rows.length === 0 ? (
         <EmptyState

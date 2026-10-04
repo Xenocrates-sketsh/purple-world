@@ -10,17 +10,19 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
+import { useGraceLoading } from "@/hooks/useGraceLoading";
 
 export function StudentGroupPage() {
   const { userDoc } = useAuth();
   const groupId = userDoc?.groupId ?? "";
   const group = useDoc<GroupDoc>(groupId ? paths.groups(groupId) : null);
+  const groupBusy = useGraceLoading(group.loading);
 
   return (
     <div>
       <PageHeader title="My group" description="Your class schedule." />
 
-      {group.loading ? (
+      {groupBusy ? (
         <SkeletonList count={2} />
       ) : !group.doc ? (
         <EmptyState

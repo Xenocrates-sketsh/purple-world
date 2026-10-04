@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
+import { useGraceLoading } from "@/hooks/useGraceLoading";
 
 export function StudentPaymentsPage() {
   const { userDoc } = useAuth();
@@ -34,6 +35,7 @@ export function StudentPaymentsPage() {
     .sort((a, b) => b.dueDate.toMillis() - a.dueDate.toMillis());
 
   const outstandingTotal = rows.filter((r) => r.status === "due").reduce((s, r) => s + (r.amount ?? 0), 0);
+  const paymentsBusy = useGraceLoading(payments.loading);
 
   return (
     <div>
@@ -46,7 +48,7 @@ export function StudentPaymentsPage() {
         }
       />
 
-      {payments.loading ? (
+      {paymentsBusy ? (
         <SkeletonList count={4} />
       ) : rows.length === 0 ? (
         <EmptyState

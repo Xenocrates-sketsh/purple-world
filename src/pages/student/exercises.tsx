@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
+import { useGraceLoading } from "@/hooks/useGraceLoading";
 import { useToast } from "@/lib/toast";
 
 function exerciseAttachmentName(url: string): string {
@@ -67,6 +68,7 @@ export function StudentExercisesPage() {
       error: direct.error ?? viaGroup.error ?? null,
     };
   }, [direct.docs, direct.loading, direct.error, viaGroup.docs, viaGroup.loading, viaGroup.error]);
+  const exercisesBusy = useGraceLoading(exercises.loading);
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [content, setContent] = useState("");
@@ -143,7 +145,7 @@ export function StudentExercisesPage() {
         <p className="rounded-xl bg-danger-soft px-3 py-2.5 text-xs text-danger">
           Couldn't load exercises ({String((exercises.error as { code?: unknown })?.code ?? "unknown")}) — check your connection and pull to refresh. If it persists, tell your teacher.
         </p>
-      ) : exercises.loading ? (
+      ) : exercisesBusy ? (
         <SkeletonList count={4} />
       ) : sorted.length === 0 ? (
         <EmptyState

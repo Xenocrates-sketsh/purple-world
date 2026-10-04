@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
+import { useGraceLoading } from "@/hooks/useGraceLoading";
 
 export function StudentAnnouncementsPage() {
   const { userDoc } = useAuth();
@@ -23,12 +24,13 @@ export function StudentAnnouncementsPage() {
         : null,
     [groupId, studentId]
   );
+  const announcementsBusy = useGraceLoading(announcements.loading);
 
   return (
     <div>
       <PageHeader title="Announcements" description="Latest news from your teacher." />
 
-      {studentId && announcements.loading ? (
+      {studentId && announcementsBusy ? (
         <SkeletonList count={4} />
       ) : !studentId || (announcements.docs ?? []).length === 0 ? (
         <EmptyState

@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
+import { useGraceLoading } from "@/hooks/useGraceLoading";
 
 /**
  * Most recent PDF lessons for the student's group. Two rule-provable queries
@@ -102,6 +103,9 @@ export function StudentDashboardPage() {
   const unpaidTotal = unpaid.reduce((sum, p) => sum + (p.data.amount ?? 0), 0);
 
   const name = user?.displayName?.split(" ")[0] || "there";
+  const lessonsBusy = useGraceLoading(newLessons.loading);
+  const scheduleBusy = useGraceLoading(schedule.loading);
+  const announcementsBusy = useGraceLoading(announcements.loading);
   // First-run tour is remembered per account (users/{uid}.prefs.welcomed),
   // so a new student on a used device still gets welcomed.
   const [tourDismissed, setTourDismissed] = useState(false);
@@ -208,7 +212,7 @@ export function StudentDashboardPage() {
                   <p className="rounded-xl bg-danger-soft px-3 py-2.5 text-xs text-danger">
                     Couldn't load new lessons ({String((newLessons.error as { code?: unknown })?.code ?? "unknown")}) — check your connection and pull to refresh. If it persists, tell your teacher.
                   </p>
-                ) : newLessons.loading ? (
+                ) : lessonsBusy ? (
                   <SkeletonList count={2} />
                 ) : newLessons.lessons.length === 0 ? (
                   <EmptyState
@@ -261,7 +265,7 @@ export function StudentDashboardPage() {
                   <p className="rounded-xl bg-danger-soft px-3 py-2.5 text-xs text-danger">
                     Couldn't load classes ({String((schedule.error as { code?: unknown })?.code ?? "unknown")}) — check your connection and pull to refresh.
                   </p>
-                ) : schedule.loading ? (
+                ) : scheduleBusy ? (
                   <SkeletonList count={2} />
                 ) : upcoming.length === 0 ? (
                   <EmptyState icon={CalendarClock} title="Nothing scheduled" description="Your next classes will appear here." />
@@ -292,7 +296,7 @@ export function StudentDashboardPage() {
                 action={<Badge variant="primary">Announcements</Badge>}
               />
               <CardContent>
-                {announcements.loading ? (
+                  {announcementsBusy ? (
                   <SkeletonList count={2} />
                 ) : (announcements.docs ?? []).length === 0 ? (
                   <EmptyState icon={ReceiptText} title="No news yet" description="Announcements from your teacher show up here." />

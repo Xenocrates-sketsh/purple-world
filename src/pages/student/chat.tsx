@@ -8,6 +8,7 @@ import { ChatThread } from "@/components/chat/chat-thread";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
+import { useGraceLoading } from "@/hooks/useGraceLoading";
 
 export function StudentChatPage() {
   const { user } = useAuth();
@@ -18,12 +19,13 @@ export function StudentChatPage() {
   );
 
   const conv = (conversation.docs ?? [])[0];
+  const conversationBusy = useGraceLoading(conversation.loading);
 
   return (
     <div>
       <PageHeader title="Messages" description="Chat privately with your teacher." />
 
-      {conversation.loading ? (
+      {conversationBusy ? (
         <SkeletonList count={3} />
       ) : !conv ? (
         <EmptyState
