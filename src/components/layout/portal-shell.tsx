@@ -104,7 +104,7 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
       </aside>
 
       {/* Mobile header */}
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-background/80 px-4 py-3 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-background px-4 py-3 lg:hidden">
         <Brand />
         <div className="flex items-center gap-2">
           <NotificationBell />
