@@ -219,7 +219,7 @@ export function ShaderWaves({
       const dt = Math.min(100, now - prev);
       prev = now;
       const t = ((now - start) / 1000) * safeSpeed;
-      if (now - lastSwitch > 20000) {
+      if (now - lastSwitch > 15000) {
         lutFrom = activeLut();
         lutTo = buildLut(randomPalette([]));
         if (lutTo === lutFrom) lutTo = buildLut(PURPLE_SILK);
