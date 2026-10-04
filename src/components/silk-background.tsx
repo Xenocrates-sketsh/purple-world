@@ -6,6 +6,34 @@ import { SILK_ENABLED } from "@/lib/config";
 /** Brand palette, dark → light (baked into a 256-step LUT). */
 const PURPLE_SILK = ["#0c0714", "#2e1065", "#6d28d9", "#a855f7", "#e9d5ff"];
 
+/** Rotating palette set — the waves drift through these over time. */
+const PALETTE_SET: string[][] = [
+  PURPLE_SILK,
+  ["#071018", "#0e3a4a", "#0ea5e9", "#818cf8", "#d9f6ff"],
+  ["#160a24", "#7c2d12", "#f97316", "#ec4899", "#ffe4ef"],
+  ["#04121f", "#123a6d", "#2563eb", "#22d3ee", "#e0f7ff"],
+  ["#0e0a1c", "#3b0764", "#9333ea", "#f0abfc", "#fdf4ff"],
+];
+
+function randomPalette(except: string[]): string[] {
+  const pool = PALETTE_SET.filter((p) => p.join() !== except.join());
+  return pool[Math.floor(Math.random() * pool.length)] ?? PURPLE_SILK;
+}
+
+type Lut = { r: Uint8Array; g: Uint8Array; b: Uint8Array };
+
+function blendLuts(a: Lut, b: Lut, t: number): Lut {
+  const r = new Uint8Array(256);
+  const g = new Uint8Array(256);
+  const bch = new Uint8Array(256);
+  for (let i = 0; i < 256; i++) {
+    r[i] = a.r[i] + (b.r[i] - a.r[i]) * t;
+    g[i] = a.g[i] + (b.g[i] - a.g[i]) * t;
+    bch[i] = a.b[i] + (b.b[i] - a.b[i]) * t;
+  }
+  return { r, g, b: bch };
+}
+
 /** Noise overlay: feTurbulence SVG inlined as data URI, no network needed. */
 const GRAIN_URL = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
@@ -100,6 +128,12 @@ export function ShaderWaves({
     if (!ctx) return;
 
     const lut = buildLut(paletteKey.split(","));
+    // Palette drift: hold each palette ~20s, crossfade over ~5s.
+    let lutFrom: Lut = lut;
+    let lutTo: Lut = buildLut(randomPalette(paletteKey.split(",")));
+    let blend = 1;
+    let lastSwitch = performance.now();
+    const activeLut = (): Lut => (blend >= 1 ? lutFrom : blendLuts(lutFrom, lutTo, blend));
     const off = document.createElement("canvas");
     const offCtx = off.getContext("2d");
     if (!offCtx) return;
@@ -126,6 +160,7 @@ export function ShaderWaves({
 
     const renderField = (t: number, ox: number, oy: number) => {
       if (!image) return;
+      const cur = activeLut();
       const data = image.data;
       const aspect = bufW / bufH || 1;
       const freq = 3 / safeScale;
@@ -143,9 +178,9 @@ export function ShaderWaves({
           let val = v * 0.125 + 0.5;
           val = val < 0 ? 0 : val > 1 ? 1 : val;
           const idx = (val * 255) | 0;
-          data[i++] = lut.r[idx];
-          data[i++] = lut.g[idx];
-          data[i++] = lut.b[idx];
+          data[i++] = cur.r[idx];
+          data[i++] = cur.g[idx];
+          data[i++] = cur.b[idx];
           data[i++] = 255;
         }
       }
@@ -178,9 +213,20 @@ export function ShaderWaves({
     let curX = 0;
     let curY = 0;
     const start = performance.now();
+    let prev = start;
 
     const loop = (now: number) => {
+      const dt = Math.min(100, now - prev);
+      prev = now;
       const t = ((now - start) / 1000) * safeSpeed;
+      if (now - lastSwitch > 20000) {
+        lutFrom = activeLut();
+        lutTo = buildLut(randomPalette([]));
+        if (lutTo === lutFrom) lutTo = buildLut(PURPLE_SILK);
+        blend = 0;
+        lastSwitch = now;
+      }
+      if (blend < 1) blend = Math.min(1, blend + dt / 5000);
       const p = pointerRef.current;
       const targetX = p.active ? p.x : 0;
       const targetY = p.active ? p.y : 0;
