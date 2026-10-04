@@ -74,9 +74,6 @@ export function LessonList({
             </div>
             {isOpen ? (
               <div className="animate-fade-in space-y-3 px-5 pb-4 pl-[76px]">
-                {l.data.description ? (
-                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">{l.data.description}</p>
-                ) : null}
                 {files.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No documents attached yet.</p>
                 ) : (
