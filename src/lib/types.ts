@@ -80,6 +80,8 @@ export interface UserDoc {
   prefs?: {
     notifications: boolean;
     language: string;
+    /** Set once the first-run welcome tour was seen (per account). */
+    welcomed?: boolean;
   };
 }
 

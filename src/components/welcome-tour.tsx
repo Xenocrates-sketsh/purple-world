@@ -5,24 +5,6 @@ import tourWelcome from "@/assets/tour-welcome.png";
 import tourUses from "@/assets/tour-uses.png";
 import tourThanks from "@/assets/tour-thanks.png";
 
-const SEEN_KEY = "pw-welcome-seen";
-
-export function shouldShowWelcomeTour(): boolean {
-  try {
-    return localStorage.getItem(SEEN_KEY) == null;
-  } catch {
-    return false;
-  }
-}
-
-function markWelcomeTourSeen() {
-  try {
-    localStorage.setItem(SEEN_KEY, "1");
-  } catch {
-    // private mode — tour simply shows again next time
-  }
-}
-
 const SLIDES = [
   { src: tourWelcome, alt: "Welcome to Purple World", ctaDelay: 1000 },
   { src: tourUses, alt: "What this website is for", ctaDelay: 5000 },
@@ -32,7 +14,7 @@ const SLIDES = [
 /**
  * First-run welcome tour: fullscreen scenes with a slow cinematic
  * crossfade (no slides, no wipes) — welcome, guided tour with 5s to
- * read, thank-you, then entry.
+ * read, thank-you, then entry. The caller persists "seen" per account.
  */
 export function WelcomeTour({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(0);
@@ -44,11 +26,6 @@ export function WelcomeTour({ onDone }: { onDone: () => void }) {
     const t = setTimeout(() => setCtaReady(true), slide.ctaDelay);
     return () => clearTimeout(t);
   }, [step, slide.ctaDelay]);
-
-  function finish() {
-    markWelcomeTourSeen();
-    onDone();
-  }
 
   return (
     <div
@@ -76,7 +53,7 @@ export function WelcomeTour({ onDone }: { onDone: () => void }) {
       <div className="absolute right-4 top-4">
         <button
           type="button"
-          onClick={finish}
+          onClick={onDone}
           className="rounded-full bg-black/30 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/50"
         >
           Skip
@@ -100,7 +77,7 @@ export function WelcomeTour({ onDone }: { onDone: () => void }) {
             {step < SLIDES.length - 1 ? (
               <Button onClick={() => setStep((s) => s + 1)}>Next</Button>
             ) : (
-              <Button onClick={finish}>Enter your space</Button>
+              <Button onClick={onDone}>Enter your space</Button>
             )}
           </div>
         ) : (

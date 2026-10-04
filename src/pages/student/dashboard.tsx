@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Sparkles, Wallet, MessageSquare, BookOpen, ReceiptText, GraduationCap, FileText, CalendarClock } from "lucide-react";
-import { WelcomeTour, shouldShowWelcomeTour } from "@/components/welcome-tour";
+import { WelcomeTour } from "@/components/welcome-tour";
+import { doc, updateDoc } from "firebase/firestore";
+import { getFirestoreDb } from "@/lib/firebase";
 
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@/hooks/useFirestore";
@@ -100,11 +102,32 @@ export function StudentDashboardPage() {
   const unpaidTotal = unpaid.reduce((sum, p) => sum + (p.data.amount ?? 0), 0);
 
   const name = user?.displayName?.split(" ")[0] || "there";
-  const [tourOpen, setTourOpen] = useState(() => shouldShowWelcomeTour());
+  // First-run tour is remembered per account (users/{uid}.prefs.welcomed),
+  // so a new student on a used device still gets welcomed.
+  const [tourDismissed, setTourDismissed] = useState(false);
+  const showTour =
+    !tourDismissed && userDoc != null && userDoc.prefs?.welcomed !== true;
+
+  async function finishTour() {
+    setTourDismissed(true);
+    if (user) {
+      try {
+        await updateDoc(doc(getFirestoreDb(), paths.users(user.uid)), {
+          prefs: {
+            notifications: userDoc?.prefs?.notifications ?? true,
+            language: userDoc?.prefs?.language ?? "fr",
+            welcomed: true,
+          },
+        });
+      } catch {
+        // tour simply shows again next time
+      }
+    }
+  }
 
   return (
     <div>
-      {tourOpen ? <WelcomeTour onDone={() => setTourOpen(false)} /> : null}
+      {showTour ? <WelcomeTour onDone={finishTour} /> : null}
       <PageHeader
         title={`Hi ${name} 👋`}
         description={
