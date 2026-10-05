@@ -2,6 +2,7 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   orderBy,
   query,
   setDoc,
@@ -48,6 +49,21 @@ export async function updateStudent(studentId: string, patch: Partial<StudentDoc
 export async function setStudentActive(studentId: string, active: boolean) {
   const db = getFirestoreDb();
   await updateDoc(doc(db, paths.students(studentId)), { active });
+}
+
+/** Remove a student from the teacher's view: hidden (inactive) + locked
+ *  out (blocked) so they can't enter. Nothing is deleted — unblock and
+ *  reactivate from their profile to restore. */
+export async function removeStudent(studentId: string) {
+  const db = getFirestoreDb();
+  const snap = await getDoc(doc(db, paths.students(studentId)));
+  const linkedUid = (snap.get("linkedUid") as string | null) ?? null;
+  const batch = writeBatch(db);
+  batch.update(doc(db, paths.students(studentId)), { active: false, blocked: true });
+  if (linkedUid) {
+    batch.update(doc(db, "users", linkedUid), { blocked: true });
+  }
+  await batch.commit();
 }
 
 /** Lock a student out of the app (and their linked account's users doc so

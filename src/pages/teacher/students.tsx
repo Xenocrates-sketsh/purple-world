@@ -3,8 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { UserPlus, Users, Search, CheckCircle2, Trash2 } from "lucide-react";
 
 import { useQuery, useDocMap } from "@/hooks/useFirestore";
-import { allStudentsQuery, createStudent, setStudentActive } from "@/lib/db/students";
-import { deleteStudentAccount } from "@/lib/db/admin";
+import { allStudentsQuery, createStudent, setStudentActive, removeStudent } from "@/lib/db/students";
 import { allGroupsQuery } from "@/lib/db/groups";
 import { BAC_STREAMS } from "@/lib/constants";
 import { normalizeDZPhone } from "@/lib/format";
@@ -135,11 +134,11 @@ export function TeacherStudentsPage() {
     if (!toDelete) return;
     setDeleting(true);
     try {
-      await deleteStudentAccount(toDelete.id);
-      toast("Student account deleted", { variant: "success" });
+      await removeStudent(toDelete.id);
+      toast("Student removed — blocked and hidden", { variant: "success" });
       setToDelete(null);
     } catch {
-      toast("Could not delete the account", { variant: "error" });
+      toast("Could not remove the student", { variant: "error" });
       setDeleting(false);
     }
   }
@@ -326,9 +325,9 @@ export function TeacherStudentsPage() {
 
       <ConfirmDialog
         open={toDelete != null}
-        title={toDelete ? `Delete ${toDelete.name}?` : "Delete student?"}
-        description="This permanently removes the student record, profile, login and private notes. Chat history is kept. This cannot be undone."
-        confirmLabel="Delete forever"
+        title={toDelete ? `Remove ${toDelete.name}?` : "Remove student?"}
+        description="They will be blocked, hidden from your dashboard, and locked out of the app. Nothing is deleted — unblock and reactivate from their profile to restore."
+        confirmLabel="Remove"
         destructive
         loading={deleting}
         onConfirm={onDeleteAccount}

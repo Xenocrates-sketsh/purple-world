@@ -52,7 +52,7 @@ export function StudentActionsCard({
           onClick={onDelete}
           leftIcon={<Trash2 className="h-4 w-4" aria-hidden />}
         >
-          Delete account
+          Remove student
         </Button>
       </CardContent>
     </Card>

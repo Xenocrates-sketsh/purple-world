@@ -12,8 +12,7 @@ import {
 
 import { useAuth } from "@/lib/auth";
 import { useQuery, useDoc, useDocMap } from "@/hooks/useFirestore";
-import { updateStudent, setStudentGroup, setStudentBlocked } from "@/lib/db/students";
-import { deleteStudentAccount } from "@/lib/db/admin";
+import { updateStudent, setStudentGroup, setStudentBlocked, removeStudent } from "@/lib/db/students";
 import { allGroupsQuery } from "@/lib/db/groups";
 import { studentPaymentsQuery } from "@/lib/db/payments";
 import { allAssessmentsQuery, studentResultsQuery } from "@/lib/db/assessments";
@@ -189,11 +188,11 @@ export function TeacherStudentDetailPage() {
   async function onDeleteAccount() {
     setDeletingAccount(true);
     try {
-      await deleteStudentAccount(studentId);
-      toast("Student account deleted", { variant: "success" });
+      await removeStudent(studentId);
+      toast("Student removed — blocked and hidden", { variant: "success" });
       navigate("/teacher/students", { replace: true });
     } catch {
-      toast("Could not delete the account", { variant: "error" });
+      toast("Could not remove the student", { variant: "error" });
       setDeletingAccount(false);
       setDeleteOpen(false);
     }
@@ -351,9 +350,9 @@ export function TeacherStudentDetailPage() {
 
       <ConfirmDialog
         open={deleteOpen}
-        title={`Delete ${data.name}?`}
-        description="This permanently removes the student record, profile, login and private notes. Chat history is kept. This cannot be undone."
-        confirmLabel="Delete forever"
+        title={`Remove ${data.name}?`}
+        description="They will be blocked, hidden from your dashboard, and locked out of the app. Nothing is deleted — unblock and reactivate from their profile to restore."
+        confirmLabel="Remove"
         destructive
         loading={deletingAccount}
         onConfirm={onDeleteAccount}
