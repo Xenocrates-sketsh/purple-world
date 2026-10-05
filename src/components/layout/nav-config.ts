@@ -1,5 +1,5 @@
 import {
-  Bell,
+  Settings,
   MessageSquare,
   ClipboardList,
   Megaphone,
@@ -36,7 +36,7 @@ export const teacherSecondaryNav: NavItem[] = [
   { to: "/teacher/exercises", label: "Exercises", icon: ClipboardList },
   { to: "/teacher/announcements", label: "Announcements", icon: Megaphone },
   { to: "/teacher/lessons", label: "Lessons", icon: BookOpen },
-  { to: "/teacher/settings", label: "Settings", icon: Bell },
+  { to: "/teacher/settings", label: "Settings", icon: Settings },
 ];
 
 export const studentPrimaryNav: NavItem[] = [
@@ -52,5 +52,5 @@ export const studentSecondaryNav: NavItem[] = [
   { to: "/student/payments", label: "Payments", icon: Wallet },
   { to: "/student/lessons", label: "Lessons", icon: BookOpen },
   { to: "/student/profile", label: "Profile", icon: GraduationCap },
-  { to: "/student/settings", label: "Settings", icon: Bell },
+  { to: "/student/settings", label: "Settings", icon: Settings },
 ];
