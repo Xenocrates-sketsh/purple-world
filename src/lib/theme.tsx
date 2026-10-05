@@ -29,7 +29,7 @@ function readStored(): ThemePreference {
   } catch {
     /* ignore */
   }
-  return "system";
+  return "dark";
 }
 
 function apply(resolved: ResolvedTheme) {
@@ -42,7 +42,7 @@ function apply(resolved: ResolvedTheme) {
 }
 
 function systemPref(): ResolvedTheme {
-  if (typeof window === "undefined" || !window.matchMedia) return "light";
+  if (typeof window === "undefined" || !window.matchMedia) return "dark";
   return window.matchMedia("(prefers-color-scheme: dark)").matches
     ? "dark"
     : "light";
