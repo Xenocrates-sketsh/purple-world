@@ -162,11 +162,6 @@ export function MissHafsaPage() {
                   Join Purple World <ArrowRight className="h-4 w-4" aria-hidden />
                 </Button>
               </Link>
-              <Link to="/login">
-                <Button size="lg" variant="secondary">
-                  Student sign-in
-                </Button>
-              </Link>
             </div>
           </Reveal>
         </section>
