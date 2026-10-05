@@ -9,6 +9,7 @@ import { useToast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Brand } from "@/components/brand";
+import { Reveal } from "@/components/reveal";
 import { SilkBackground } from "@/components/silk-background";
 import { cn } from "@/lib/cn";
 import hafsaLogo from "@/assets/hafsa-logo.jpg";
@@ -131,82 +132,100 @@ export function MissHafsaPage() {
 
         {/* Hero */}
         <section className="mt-8 text-center">
-          <img
-            src={hafsaLogo}
-            alt="Miss Hafsa"
-            className="mx-auto h-40 w-40 rounded-full border-4 border-primary/40 object-cover shadow-xl sm:h-52 sm:w-52"
-          />
-          <p className="mt-6 text-xs font-semibold uppercase tracking-[0.22em] text-primary">
-            English · BAC · All levels
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
-            Studying English with{" "}
-            <span className="bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
-              Miss Hafsa
-            </span>
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Welcome to English with Miss Hafsa — where BAC students conquer exams, beginners
-            find their voice, and kids and adults learn to speak with confidence. Lessons,
-            activities and real communication — welcome to our world, where studying is fun.
-          </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Link to="/login">
-              <Button size="lg">
-                Join Purple World <ArrowRight className="h-4 w-4" aria-hidden />
-              </Button>
-            </Link>
-            <Link to="/login">
-              <Button size="lg" variant="secondary">
-                Student sign-in
-              </Button>
-            </Link>
-          </div>
+          <Reveal>
+            <img
+              src={hafsaLogo}
+              alt="Miss Hafsa"
+              className="mx-auto h-40 w-40 rounded-full border-4 border-primary/40 object-cover shadow-xl sm:h-52 sm:w-52"
+            />
+          </Reveal>
+          <Reveal delay={120}>
+            <p className="mt-6 text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+              English · BAC · All levels
+            </p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
+              Studying English with{" "}
+              <span className="bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
+                Miss Hafsa
+              </span>
+            </h1>
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+              Welcome to English with Miss Hafsa — where BAC students conquer exams, beginners
+              find their voice, and kids and adults learn to speak with confidence. Lessons,
+              activities and real communication — welcome to our world, where studying is fun.
+            </p>
+          </Reveal>
+          <Reveal delay={240}>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link to="/login">
+                <Button size="lg">
+                  Join Purple World <ArrowRight className="h-4 w-4" aria-hidden />
+                </Button>
+              </Link>
+              <Link to="/login">
+                <Button size="lg" variant="secondary">
+                  Student sign-in
+                </Button>
+              </Link>
+            </div>
+          </Reveal>
         </section>
 
         {/* Banner */}
         <section className="mt-12">
-          <img
-            src={hafsaBanner}
-            alt="Bac lessons, A1/A2 levels and communication classes with Miss Hafsa"
-            className="w-full rounded-2xl border border-border object-cover shadow-lg"
-            loading="lazy"
-          />
+          <Reveal>
+            <img
+              src={hafsaBanner}
+              alt="Bac lessons, A1/A2 levels and communication classes with Miss Hafsa"
+              className="w-full rounded-2xl border border-border object-cover shadow-lg"
+              loading="lazy"
+            />
+          </Reveal>
         </section>
 
         {/* Experience */}
         <section className="mt-12">
-          <h2 className="text-center text-2xl font-bold text-foreground">Experience</h2>
+          <Reveal>
+            <h2 className="text-center text-2xl font-bold text-foreground">Experience</h2>
+          </Reveal>
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            {TIMELINE.map((t) => (
-              <Card key={t.title} className="p-5">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-soft text-primary">
-                  <t.icon className="h-5 w-5" aria-hidden />
-                </span>
-                <p className="mt-3 font-semibold text-foreground">{t.title}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{t.text}</p>
-              </Card>
+            {TIMELINE.map((t, i) => (
+              <Reveal key={t.title} delay={i * 110}>
+                <Card className="h-full p-5">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                    <t.icon className="h-5 w-5" aria-hidden />
+                  </span>
+                  <p className="mt-3 font-semibold text-foreground">{t.title}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{t.text}</p>
+                </Card>
+              </Reveal>
             ))}
           </div>
         </section>
 
         {/* Rating */}
         <section className="mt-12">
-          <h2 className="text-center text-2xl font-bold text-foreground">Loved by her students</h2>
-          <div className="mt-6">
-            <RatingWidget />
-          </div>
+          <Reveal>
+            <h2 className="text-center text-2xl font-bold text-foreground">Loved by her students</h2>
+          </Reveal>
+          <Reveal delay={120}>
+            <div className="mt-6">
+              <RatingWidget />
+            </div>
+          </Reveal>
         </section>
 
         {/* Finale quote */}
         <section className="mt-12 text-center">
-          <BadgeCheck className="mx-auto h-8 w-8 text-primary" aria-hidden />
-          <blockquote className="mx-auto mt-4 max-w-2xl text-xl font-bold italic leading-relaxed text-foreground sm:text-2xl">
-            “You tell me good luck — I don’t need luck to perform, I decide when to perform good.”
-          </blockquote>
-          <p className="mt-2 text-sm font-medium uppercase tracking-widest text-muted-foreground">
-            — Miss Hafsa
-          </p>
+          <Reveal>
+            <BadgeCheck className="mx-auto h-8 w-8 text-primary" aria-hidden />
+            <blockquote className="mx-auto mt-4 max-w-2xl text-xl font-bold italic leading-relaxed text-foreground sm:text-2xl">
+              “You tell me good luck — I don’t need luck to perform, I decide when to perform good.”
+            </blockquote>
+            <p className="mt-2 text-sm font-medium uppercase tracking-widest text-muted-foreground">
+              — Miss Hafsa
+            </p>
+          </Reveal>
         </section>
 
         {/* Socials */}
