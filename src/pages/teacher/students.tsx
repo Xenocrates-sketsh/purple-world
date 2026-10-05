@@ -1,9 +1,10 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { UserPlus, Users, Search, CheckCircle2 } from "lucide-react";
+import { UserPlus, Users, Search, CheckCircle2, Trash2 } from "lucide-react";
 
 import { useQuery, useDocMap } from "@/hooks/useFirestore";
 import { allStudentsQuery, createStudent, setStudentActive } from "@/lib/db/students";
+import { deleteStudentAccount } from "@/lib/db/admin";
 import { allGroupsQuery } from "@/lib/db/groups";
 import { BAC_STREAMS } from "@/lib/constants";
 import { normalizeDZPhone } from "@/lib/format";
@@ -17,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Field } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { useToast } from "@/lib/toast";
@@ -25,10 +27,12 @@ function StudentRow({
   s,
   groupName,
   onToggleActive,
+  onDeleteAsk,
 }: {
   s: { id: string; data: StudentDoc };
   groupName?: string;
   onToggleActive: (id: string, active: boolean) => void;
+  onDeleteAsk: (s: { id: string; data: StudentDoc }) => void;
 }) {
   return (
     <Link
@@ -76,6 +80,19 @@ function StudentRow({
             }
           />
         </button>
+        <button
+          type="button"
+          aria-label={`Delete ${s.data.name}`}
+          title="Delete account"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onDeleteAsk(s);
+          }}
+          className="rounded-lg p-1.5 text-muted-foreground hover:bg-danger-soft hover:text-danger"
+        >
+          <Trash2 className="h-4 w-4" aria-hidden />
+        </button>
       </div>
     </Link>
   );
@@ -102,6 +119,8 @@ export function TeacherStudentsPage() {
   const [targetScore, setTargetScore] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const filtered = useMemo(() => {
     const list = students.docs ?? [];
@@ -112,6 +131,17 @@ export function TeacherStudentsPage() {
     );
   }, [students.docs, q]);
 
+  async function onDeleteAccount() {
+    if (!toDelete) return;
+    setDeleting(true);
+    try {
+      await deleteStudentAccount(toDelete.id);
+      toast("Student account deleted", { variant: "success" });
+      setToDelete(null);
+    } catch {
+      toast("Could not delete the account", { variant: "error" });
+      setDeleting(false);
+    }
   async function onToggleActive(id: string, active: boolean) {
     try {
       await setStudentActive(id, active);
@@ -222,6 +252,7 @@ export function TeacherStudentsPage() {
                   s={s}
                   groupName={groupsById.get(s.data.groupId ?? "")?.name}
                   onToggleActive={onToggleActive}
+                  onDeleteAsk={(row) => setToDelete({ id: row.id, name: row.data.name })}
                 />
               ))}
             </ul>
@@ -290,6 +321,17 @@ export function TeacherStudentsPage() {
           ) : null}
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={toDelete != null}
+        title={toDelete ? `Delete ${toDelete.name}?` : "Delete student?"}
+        description="This permanently removes the student record, profile, login and private notes. Chat history is kept. This cannot be undone."
+        confirmLabel="Delete forever"
+        destructive
+        loading={deleting}
+        onConfirm={onDeleteAccount}
+        onCancel={() => setToDelete(null)}
+      />
     </div>
   );
 }
