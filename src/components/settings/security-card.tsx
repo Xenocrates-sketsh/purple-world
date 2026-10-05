@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { EmailAuthProvider, linkWithCredential } from "firebase/auth";
+import { EmailAuthProvider, linkWithCredential, updatePassword } from "firebase/auth";
 
 import { useAuth } from "@/lib/auth";
 import { humanError } from "@/lib/errors";
@@ -27,6 +27,31 @@ export function SecurityCard() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [saving, setSaving] = useState(false);
+  const [changing, setChanging] = useState(false);
+
+  async function onChangePassword(e: FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    if (password.length < 6) {
+      toast("Password must be at least 6 characters.", { variant: "error" });
+      return;
+    }
+    if (password !== confirm) {
+      toast("Passwords don't match.", { variant: "error" });
+      return;
+    }
+    setChanging(true);
+    try {
+      await updatePassword(user, password);
+      toast("Password changed.", { variant: "success" });
+      setPassword("");
+      setConfirm("");
+    } catch (err) {
+      toast(humanError(err) + " If this persists, sign out and back in, then try again.", { variant: "error" });
+    } finally {
+      setChanging(false);
+    }
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -65,12 +90,39 @@ export function SecurityCard() {
       />
       <CardContent>
         {hasPassword ? (
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              Password sign-in is on for {user?.email ?? "your account"}.
-            </p>
-            <Badge variant="success">Active</Badge>
-          </div>
+          <form onSubmit={onChangePassword} className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground">
+                Password sign-in is on for {user?.email ?? "your account"}.
+              </p>
+              <Badge variant="success">Active</Badge>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="New password" htmlFor="sec-change" required hint="At least 6 characters">
+                <Input
+                  id="sec-change"
+                  type="password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </Field>
+              <Field label="Confirm password" htmlFor="sec-change2" required>
+                <Input
+                  id="sec-change2"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  required
+                />
+              </Field>
+            </div>
+            <Button type="submit" loading={changing}>
+              Change password
+            </Button>
+          </form>
         ) : (
           <form onSubmit={onSubmit} className="space-y-4">
             <p className="text-sm text-muted-foreground">

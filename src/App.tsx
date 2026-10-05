@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { Ban } from "lucide-react";
 
@@ -9,7 +10,8 @@ import { ConfigWarning } from "@/components/config-warning";
 import { Button } from "@/components/ui/button";
 import { Brand } from "@/components/brand";
 
-import { WelcomePage } from "@/pages/welcome";import { LoginPage } from "@/pages/login";
+import { WelcomePage } from "@/pages/welcome";
+import { LoginPage } from "@/pages/login";
 import { TeacherLoginPage } from "@/pages/teacher-login";
 import { ForgotPasswordPage } from "@/pages/forgot-password";
 import { DesignGalleryPage } from "@/pages/design";
@@ -17,39 +19,98 @@ import { DesignGalleryPage } from "@/pages/design";
 import { TeacherLayout } from "@/components/layout/teacher-layout";
 import { StudentLayout } from "@/components/layout/student-layout";
 
-// ---- Teacher pages ----
-import { TeacherDashboardPage } from "@/pages/teacher/dashboard";
-import { TeacherStudentsPage } from "@/pages/teacher/students";
-import { TeacherArrivalsPage } from "@/pages/teacher/arrivals";
-import { TeacherStudentDetailPage } from "@/pages/teacher/student-detail";
-import { TeacherGroupsPage } from "@/pages/teacher/groups";
-import { TeacherGroupDetailPage } from "@/pages/teacher/group-detail";
-import { TeacherSchedulePage } from "@/pages/teacher/schedule";
-import { TeacherAttendancePage } from "@/pages/teacher/attendance";
-import { TeacherGradesPage } from "@/pages/teacher/grades";
-import { TeacherGradeDetailPage } from "@/pages/teacher/grade-detail";
-import { TeacherExercisesPage } from "@/pages/teacher/exercises";
-import { TeacherExerciseDetailPage } from "@/pages/teacher/exercise-detail";
-import { TeacherAnnouncementsPage } from "@/pages/teacher/announcements";
-import { TeacherLessonsPage } from "@/pages/teacher/lessons";
-import { TeacherPaymentsPage } from "@/pages/teacher/payments";
-import { TeacherChatPage } from "@/pages/teacher/chat";
-import { TeacherChatThreadPage } from "@/pages/teacher/chat-thread";
-import { TeacherGroupChatPage } from "@/pages/teacher/group-chat";
-import { TeacherSettingsPage } from "@/pages/teacher/settings";
+// Route pages are code-split so the first load stays small.
+const TeacherDashboardPage = lazy(() =>
+  import("@/pages/teacher/dashboard").then((m) => ({ default: m.TeacherDashboardPage }))
+);
+const TeacherStudentsPage = lazy(() =>
+  import("@/pages/teacher/students").then((m) => ({ default: m.TeacherStudentsPage }))
+);
+const TeacherArrivalsPage = lazy(() =>
+  import("@/pages/teacher/arrivals").then((m) => ({ default: m.TeacherArrivalsPage }))
+);
+const TeacherStudentDetailPage = lazy(() =>
+  import("@/pages/teacher/student-detail").then((m) => ({ default: m.TeacherStudentDetailPage }))
+);
+const TeacherGroupsPage = lazy(() =>
+  import("@/pages/teacher/groups").then((m) => ({ default: m.TeacherGroupsPage }))
+);
+const TeacherGroupDetailPage = lazy(() =>
+  import("@/pages/teacher/group-detail").then((m) => ({ default: m.TeacherGroupDetailPage }))
+);
+const TeacherSchedulePage = lazy(() =>
+  import("@/pages/teacher/schedule").then((m) => ({ default: m.TeacherSchedulePage }))
+);
+const TeacherAttendancePage = lazy(() =>
+  import("@/pages/teacher/attendance").then((m) => ({ default: m.TeacherAttendancePage }))
+);
+const TeacherGradesPage = lazy(() =>
+  import("@/pages/teacher/grades").then((m) => ({ default: m.TeacherGradesPage }))
+);
+const TeacherGradeDetailPage = lazy(() =>
+  import("@/pages/teacher/grade-detail").then((m) => ({ default: m.TeacherGradeDetailPage }))
+);
+const TeacherExercisesPage = lazy(() =>
+  import("@/pages/teacher/exercises").then((m) => ({ default: m.TeacherExercisesPage }))
+);
+const TeacherExerciseDetailPage = lazy(() =>
+  import("@/pages/teacher/exercise-detail").then((m) => ({ default: m.TeacherExerciseDetailPage }))
+);
+const TeacherAnnouncementsPage = lazy(() =>
+  import("@/pages/teacher/announcements").then((m) => ({ default: m.TeacherAnnouncementsPage }))
+);
+const TeacherLessonsPage = lazy(() =>
+  import("@/pages/teacher/lessons").then((m) => ({ default: m.TeacherLessonsPage }))
+);
+const TeacherPaymentsPage = lazy(() =>
+  import("@/pages/teacher/payments").then((m) => ({ default: m.TeacherPaymentsPage }))
+);
+const TeacherChatPage = lazy(() =>
+  import("@/pages/teacher/chat").then((m) => ({ default: m.TeacherChatPage }))
+);
+const TeacherChatThreadPage = lazy(() =>
+  import("@/pages/teacher/chat-thread").then((m) => ({ default: m.TeacherChatThreadPage }))
+);
+const TeacherGroupChatPage = lazy(() =>
+  import("@/pages/teacher/group-chat").then((m) => ({ default: m.TeacherGroupChatPage }))
+);
+const TeacherSettingsPage = lazy(() =>
+  import("@/pages/teacher/settings").then((m) => ({ default: m.TeacherSettingsPage }))
+);
 
-// ---- Student pages ----
-import { StudentDashboardPage } from "@/pages/student/dashboard";
-import { StudentProfilePage } from "@/pages/student/profile";
-import { StudentGradesPage } from "@/pages/student/grades";
-import { StudentGroupPage } from "@/pages/student/group";
-import { StudentPaymentsPage } from "@/pages/student/payments";
-import { StudentExercisesPage } from "@/pages/student/exercises";
-import { StudentAnnouncementsPage } from "@/pages/student/announcements";
-import { StudentLessonsPage } from "@/pages/student/lessons";
-import { StudentChatPage } from "@/pages/student/chat";
-import { StudentChatThreadPage } from "@/pages/student/chat-thread";
-import { StudentSettingsPage } from "@/pages/student/settings";
+const StudentDashboardPage = lazy(() =>
+  import("@/pages/student/dashboard").then((m) => ({ default: m.StudentDashboardPage }))
+);
+const StudentProfilePage = lazy(() =>
+  import("@/pages/student/profile").then((m) => ({ default: m.StudentProfilePage }))
+);
+const StudentGradesPage = lazy(() =>
+  import("@/pages/student/grades").then((m) => ({ default: m.StudentGradesPage }))
+);
+const StudentGroupPage = lazy(() =>
+  import("@/pages/student/group").then((m) => ({ default: m.StudentGroupPage }))
+);
+const StudentPaymentsPage = lazy(() =>
+  import("@/pages/student/payments").then((m) => ({ default: m.StudentPaymentsPage }))
+);
+const StudentExercisesPage = lazy(() =>
+  import("@/pages/student/exercises").then((m) => ({ default: m.StudentExercisesPage }))
+);
+const StudentAnnouncementsPage = lazy(() =>
+  import("@/pages/student/announcements").then((m) => ({ default: m.StudentAnnouncementsPage }))
+);
+const StudentLessonsPage = lazy(() =>
+  import("@/pages/student/lessons").then((m) => ({ default: m.StudentLessonsPage }))
+);
+const StudentChatPage = lazy(() =>
+  import("@/pages/student/chat").then((m) => ({ default: m.StudentChatPage }))
+);
+const StudentChatThreadPage = lazy(() =>
+  import("@/pages/student/chat-thread").then((m) => ({ default: m.StudentChatThreadPage }))
+);
+const StudentSettingsPage = lazy(() =>
+  import("@/pages/student/settings").then((m) => ({ default: m.StudentSettingsPage }))
+);
 
 /** Gate that waits for auth state, then renders <Outlet/> only for the role. */
 function RouteGate({ role }: { role?: Role }) {
@@ -125,55 +186,57 @@ function BlockedScreen() {
 export function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<WelcomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/login/teacher" element={<TeacherLoginPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/design" element={<DesignGalleryPage />} />
+      <Suspense fallback={<FullPageSpinner label="Loading…" />}>
+        <Routes>
+          <Route path="/" element={<WelcomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login/teacher" element={<TeacherLoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/design" element={<DesignGalleryPage />} />
 
-        <Route element={<RouteGate role="teacher" />}>
-          <Route path="/teacher" element={<TeacherLayout />}>
-            <Route index element={<TeacherDashboardPage />} />
-            <Route path="arrivals" element={<TeacherArrivalsPage />} />
-            <Route path="students" element={<TeacherStudentsPage />} />
-            <Route path="students/:studentId" element={<TeacherStudentDetailPage />} />
-            <Route path="groups" element={<TeacherGroupsPage />} />
-            <Route path="groups/:groupId" element={<TeacherGroupDetailPage />} />
-            <Route path="schedule" element={<TeacherSchedulePage />} />
-            <Route path="schedule/attendance/:lessonId" element={<TeacherAttendancePage />} />
-            <Route path="grades" element={<TeacherGradesPage />} />
-            <Route path="grades/:assessmentId" element={<TeacherGradeDetailPage />} />
-            <Route path="exercises" element={<TeacherExercisesPage />} />
-            <Route path="exercises/:exerciseId" element={<TeacherExerciseDetailPage />} />
-            <Route path="announcements" element={<TeacherAnnouncementsPage />} />
-            <Route path="lessons" element={<TeacherLessonsPage />} />
-            <Route path="payments" element={<TeacherPaymentsPage />} />
-            <Route path="chat" element={<TeacherChatPage />} />
-            <Route path="chat/:studentId" element={<TeacherChatThreadPage />} />
-            <Route path="chat/group/:conversationId" element={<TeacherGroupChatPage />} />
-            <Route path="settings" element={<TeacherSettingsPage />} />
+          <Route element={<RouteGate role="teacher" />}>
+            <Route path="/teacher" element={<TeacherLayout />}>
+              <Route index element={<TeacherDashboardPage />} />
+              <Route path="arrivals" element={<TeacherArrivalsPage />} />
+              <Route path="students" element={<TeacherStudentsPage />} />
+              <Route path="students/:studentId" element={<TeacherStudentDetailPage />} />
+              <Route path="groups" element={<TeacherGroupsPage />} />
+              <Route path="groups/:groupId" element={<TeacherGroupDetailPage />} />
+              <Route path="schedule" element={<TeacherSchedulePage />} />
+              <Route path="schedule/attendance/:lessonId" element={<TeacherAttendancePage />} />
+              <Route path="grades" element={<TeacherGradesPage />} />
+              <Route path="grades/:assessmentId" element={<TeacherGradeDetailPage />} />
+              <Route path="exercises" element={<TeacherExercisesPage />} />
+              <Route path="exercises/:exerciseId" element={<TeacherExerciseDetailPage />} />
+              <Route path="announcements" element={<TeacherAnnouncementsPage />} />
+              <Route path="lessons" element={<TeacherLessonsPage />} />
+              <Route path="payments" element={<TeacherPaymentsPage />} />
+              <Route path="chat" element={<TeacherChatPage />} />
+              <Route path="chat/:studentId" element={<TeacherChatThreadPage />} />
+              <Route path="chat/group/:conversationId" element={<TeacherGroupChatPage />} />
+              <Route path="settings" element={<TeacherSettingsPage />} />
+            </Route>
           </Route>
-        </Route>
 
-        <Route element={<RouteGate role="student" />}>
-          <Route path="/student" element={<StudentLayout />}>
-            <Route index element={<StudentDashboardPage />} />
-            <Route path="profile" element={<StudentProfilePage />} />
-            <Route path="grades" element={<StudentGradesPage />} />
-            <Route path="group" element={<StudentGroupPage />} />
-            <Route path="payments" element={<StudentPaymentsPage />} />
-            <Route path="exercises" element={<StudentExercisesPage />} />
-            <Route path="announcements" element={<StudentAnnouncementsPage />} />
-            <Route path="lessons" element={<StudentLessonsPage />} />
-            <Route path="chat" element={<StudentChatPage />} />
-            <Route path="chat/:conversationId" element={<StudentChatThreadPage />} />
-            <Route path="settings" element={<StudentSettingsPage />} />
+          <Route element={<RouteGate role="student" />}>
+            <Route path="/student" element={<StudentLayout />}>
+              <Route index element={<StudentDashboardPage />} />
+              <Route path="profile" element={<StudentProfilePage />} />
+              <Route path="grades" element={<StudentGradesPage />} />
+              <Route path="group" element={<StudentGroupPage />} />
+              <Route path="payments" element={<StudentPaymentsPage />} />
+              <Route path="exercises" element={<StudentExercisesPage />} />
+              <Route path="announcements" element={<StudentAnnouncementsPage />} />
+              <Route path="lessons" element={<StudentLessonsPage />} />
+              <Route path="chat" element={<StudentChatPage />} />
+              <Route path="chat/:conversationId" element={<StudentChatThreadPage />} />
+              <Route path="settings" element={<StudentSettingsPage />} />
+            </Route>
           </Route>
-        </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

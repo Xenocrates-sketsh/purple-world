@@ -6,7 +6,7 @@ import { resolveRoleAfterLogin, useAuth } from "@/lib/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
 import { humanError } from "@/lib/errors";
 import { Brand } from "@/components/brand";
-import loginBg from "@/assets/login-bg.png";
+import loginBg from "@/assets/login-bg.webp";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

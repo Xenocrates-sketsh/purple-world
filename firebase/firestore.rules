@@ -483,17 +483,6 @@ service cloud.firestore {
     }
 
     // ------------------------------------------------------------------
-    // diagnostics/{autoId} — TEMPORARY (Flapper empty-lessons investigation,
-    // Sep 2026). Any signed-in client may append one ping; only the teacher
-    // may read. REMOVE after diagnosis.
-    // ------------------------------------------------------------------
-    match /diagnostics/{diagId} {
-      allow read: if isTeacher();
-      allow create: if isAuth();
-      allow update, delete: if false;
-    }
-
-    // ------------------------------------------------------------------
     // Collection-group access (students viewing their own rows across
     // collections, and users reading their own participant markers).
     // These must be declared as {path=**} rules to cover collection-group

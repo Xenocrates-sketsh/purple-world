@@ -6,7 +6,7 @@ import { resolveRoleAfterLogin, useAuth } from "@/lib/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
 import { humanError } from "@/lib/errors";
 import { isValidEmail, normalizeDZPhone, looksLikePhone } from "@/lib/format";
-import loginBg from "@/assets/login-bg.png";
+import loginBg from "@/assets/login-bg.webp";
 import { useQuery } from "@/hooks/useFirestore";
 import { myArrivalQuery, createArrival } from "@/lib/db/arrivals";
 import type { ArrivalDoc } from "@/lib/types";

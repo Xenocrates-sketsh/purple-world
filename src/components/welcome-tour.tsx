@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import tourWelcome from "@/assets/tour-welcome.png";
-import tourUses from "@/assets/tour-uses.png";
-import tourThanks from "@/assets/tour-thanks.png";
+import tourWelcome from "@/assets/tour-welcome.webp";
+import tourUses from "@/assets/tour-uses.webp";
+import tourThanks from "@/assets/tour-thanks.webp";
 
 const SLIDES = [
   { src: tourWelcome, alt: "Welcome to Purple World", ctaDelay: 1000 },

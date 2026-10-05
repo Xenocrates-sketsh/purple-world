@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown, BookOpen, FileText, ExternalLink } from "lucide-react";
 
 import { useAuth } from "@/lib/auth";
@@ -7,7 +7,6 @@ import {
   allGroupsLessonResourcesQuery,
   groupLessonResourcesQuery,
 } from "@/lib/db/lessonResources";
-import { pingLessonsDiagnostic } from "@/lib/db/diagnostics";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -26,7 +25,7 @@ function attachmentName(url: string): string {
 }
 
 export function StudentLessonsPage() {
-  const { user, userDoc } = useAuth();
+  const { userDoc } = useAuth();
   const myGroupId = userDoc?.groupId ?? null;
   // Two rule-provable queries merged client-side (see db/lessonResources.ts):
   // all-groups lessons + my group's lessons. An unconstrained list query is
@@ -50,26 +49,6 @@ export function StudentLessonsPage() {
     };
   }, [allGroups.docs, allGroups.loading, allGroups.error, myGroup.docs, myGroup.loading, myGroup.error]);
   const lessonsBusy = useGraceLoading(lessons.loading);
-
-  // TEMPORARY diagnostic ping — reports what this client actually saw so we
-  // can diagnose the empty-list report. Fires once when the query settles.
-  // REMOVE after diagnosis (see db/diagnostics.ts).
-  const pinged = useRef(false);
-  useEffect(() => {
-    if (pinged.current || lessons.loading || !user) return;
-    pinged.current = true;
-    void pingLessonsDiagnostic({
-      uid: user.uid,
-      page: "student-lessons",
-      groupIdSeen: myGroupId,
-      studentIdSeen: userDoc?.studentId ?? null,
-      returned: lessons.docs?.length ?? null,
-      visible: lessons.docs?.length ?? null,
-      errorCode: String((lessons.error as { code?: unknown })?.code ?? (lessons.error ? "unknown" : null) ?? null),
-      bundle: document.documentElement.dataset.build ?? "unknown",
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lessons.loading]);
 
   const visible = useMemo(() => {
     return [...(lessons.docs ?? [])].sort(
