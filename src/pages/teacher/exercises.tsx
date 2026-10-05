@@ -185,7 +185,6 @@ export function TeacherExercisesPage() {
             >
               {showArchived ? "Show active" : "Archived"}
             </Button>
-            <Button onClick={openCreate} leftIcon={<Plus className="h-4 w-4" aria-hidden />}>New exercise</Button>
           </div>
         }
       />
@@ -197,9 +196,6 @@ export function TeacherExercisesPage() {
           icon={FileText}
           title={showArchived ? "No archived exercises" : "No exercises yet"}
           description={showArchived ? "Archived exercises appear here." : "Create and assign your first exercise."}
-          action={!showArchived ? (
-            <Button onClick={openCreate} leftIcon={<Plus className="h-4 w-4" aria-hidden />}>New exercise</Button>
-          ) : undefined}
         />
       ) : (
         <Card>
@@ -214,6 +210,10 @@ export function TeacherExercisesPage() {
           </CardContent>
         </Card>
       )}
+
+      <div className="mt-4 flex justify-center">
+        <Button onClick={openCreate} leftIcon={<Plus className="h-4 w-4" aria-hidden />}>New exercise</Button>
+      </div>
 
       <ExerciseFormModal
         open={open}

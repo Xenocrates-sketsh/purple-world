@@ -9,6 +9,7 @@ import type { StudentDoc } from "@/lib/types";
 import { formatRelative, truncate } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -37,7 +38,12 @@ export function TeacherChatPage() {
             <EmptyState
               icon={MessageSquare}
               title="No conversations yet"
-              description="Open a student's profile and press 'Open chat' to start a thread."
+              description="Pick a student to start chatting."
+              action={
+                <Link to="/teacher/students">
+                  <Button>New chat</Button>
+                </Link>
+              }
             />
           ) : (
             <ul className="divide-y divide-border">
