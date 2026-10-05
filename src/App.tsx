@@ -16,6 +16,10 @@ import { TeacherLoginPage } from "@/pages/teacher-login";
 import { ForgotPasswordPage } from "@/pages/forgot-password";
 import { DesignGalleryPage } from "@/pages/design";
 
+const MissHafsaPage = lazy(() =>
+  import("@/pages/miss-hafsa").then((m) => ({ default: m.MissHafsaPage }))
+);
+
 import { TeacherLayout } from "@/components/layout/teacher-layout";
 import { StudentLayout } from "@/components/layout/student-layout";
 
@@ -193,6 +197,7 @@ export function App() {
           <Route path="/login/teacher" element={<TeacherLoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/design" element={<DesignGalleryPage />} />
+          <Route path="/miss-hafsa" element={<MissHafsaPage />} />
 
           <Route element={<RouteGate role="teacher" />}>
             <Route path="/teacher" element={<TeacherLayout />}>

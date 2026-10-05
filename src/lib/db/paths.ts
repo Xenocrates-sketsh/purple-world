@@ -34,6 +34,7 @@ export const paths = {
   invites: (code: string) => `invites/${code}`,
   arrivals: (id: string) => `arrivals/${id}`,
   settings: (key: string) => `settings/${key}`,
+  ratings: "ratings",
 } as const;
 
 /** Identity of a Firestore doc: id + typed data. */

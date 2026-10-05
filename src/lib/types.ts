@@ -310,5 +310,11 @@ export interface InviteDoc {
   createdAt: Timestamp;
 }
 
+/** ratings/{autoId} — public 1–5 star votes for Miss Hafsa. */
+export interface RatingDoc {
+  score: number;
+  createdAt: Timestamp;
+}
+
 /** Firestore document timestamps serialize to {seconds, nanoseconds} client-side. */
 export type FireTime = Timestamp;

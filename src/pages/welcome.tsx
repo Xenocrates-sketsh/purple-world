@@ -156,7 +156,10 @@ export function WelcomePage() {
         </div>
 
         <p className="pw-rise pw-rise-5 mt-6 text-center text-xs text-muted-foreground">
-          New student? Ask Hafsa for your invite code, then sign in.
+          New student? Ask Hafsa for your invite code, then sign in.{" "}
+          <Link to="/miss-hafsa" className="font-medium text-primary hover:underline">
+            Meet Miss Hafsa
+          </Link>
         </p>
       </div>
     </div>
