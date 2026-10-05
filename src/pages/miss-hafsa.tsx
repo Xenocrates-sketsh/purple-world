@@ -222,7 +222,7 @@ export function MissHafsaPage() {
           <Reveal>
             <BadgeCheck className="mx-auto h-8 w-8 text-primary" aria-hidden />
             <blockquote className="mx-auto mt-4 max-w-2xl text-xl font-bold italic leading-relaxed text-foreground sm:text-2xl">
-              “You tell me good luck — I don’t need luck to perform, I decide when to perform good.”
+              “You don't need luck to perform, you decide when to perform good… and WIN.”
             </blockquote>
             <p className="mt-2 text-sm font-medium uppercase tracking-widest text-muted-foreground">
               — Miss Hafsa
