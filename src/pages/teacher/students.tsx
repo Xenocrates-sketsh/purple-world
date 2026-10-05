@@ -142,6 +142,8 @@ export function TeacherStudentsPage() {
       toast("Could not delete the account", { variant: "error" });
       setDeleting(false);
     }
+  }
+
   async function onToggleActive(id: string, active: boolean) {
     try {
       await setStudentActive(id, active);
