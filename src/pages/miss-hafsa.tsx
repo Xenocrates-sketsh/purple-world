@@ -20,7 +20,14 @@ const VOTED_KEY = "pw-rated";
 function RatingWidget() {
   const { toast } = useToast();
   const ratings = useQuery<RatingDoc>((db) => ratingsQuery(db));
-  const [picked, setPicked] = useState(0);
+  const [picked, setPicked] = useState(() => {
+    try {
+      const n = Number(localStorage.getItem(VOTED_KEY));
+      return Number.isInteger(n) && n >= 1 && n <= 5 ? n : 0;
+    } catch {
+      return 0;
+    }
+  });
   const [hovered, setHovered] = useState(0);
   const [saving, setSaving] = useState(false);
   const [voted, setVoted] = useState(() => {
@@ -41,7 +48,7 @@ function RatingWidget() {
     try {
       await submitRating(picked);
       try {
-        localStorage.setItem(VOTED_KEY, String(Date.now()));
+        localStorage.setItem(VOTED_KEY, String(picked));
       } catch {
         // private mode — vote still counted
       }
