@@ -75,8 +75,13 @@ export function ChatThread({ conversationId, myUid, otherName, avatarSrc, backHr
       setText("");
       const el = scrollRef.current;
       if (el) el.scrollTop = el.scrollHeight;
-    } catch {
-      toast("Could not send message", { variant: "error" });
+    } catch (err) {
+      const code =
+        typeof err === "object" && err !== null && "code" in err
+          ? String((err as { code: unknown }).code)
+          : "unknown";
+      console.error("[chat] send failed:", code, err);
+      toast(`Could not send message (${code})`, { variant: "error" });
     } finally {
       setSending(false);
     }
