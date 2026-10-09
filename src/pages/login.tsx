@@ -14,6 +14,7 @@ import { Brand } from "@/components/brand";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
 
 type Mode = "request" | "signin";
@@ -64,6 +65,7 @@ export function LoginPage() {
   const [age, setAge] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pendingOpen, setPendingOpen] = useState(false);
 
   // legacy sign-in form
   const [signinEmail, setSigninEmail] = useState("");
@@ -156,6 +158,8 @@ export function LoginPage() {
         age: ageNum,
         uid,
       });
+      goStep(1);
+      setPendingOpen(true);
     } catch (err) {
       setError(humanError(err));
     } finally {
@@ -182,7 +186,7 @@ export function LoginPage() {
       setSigninError(
         resolved === "teacher"
           ? "This is the teacher account — please use the teacher sign-in."
-          : "Couldn't verify your student profile. Ask your teacher to confirm your account is set up, then try again."
+          : "Your teacher hasn't activated your account yet. Please be patient — you'll get in once approved."
       );
     } catch (err) {
       setSigninError(humanError(err));
@@ -509,6 +513,23 @@ export function LoginPage() {
             </Link>
           </p>
         </div>
+
+        <Modal
+          open={pendingOpen}
+          onClose={() => setPendingOpen(false)}
+          title="Request received"
+          footer={
+            <Button onClick={() => setPendingOpen(false)} className="w-full">
+              Understood
+            </Button>
+          }
+        >
+          <p className="text-sm text-muted-foreground">
+            Your request is pending. Your account will likely be approved by
+            your teacher within the next 24–48 hours. Come back then and sign
+            in with your email and password.
+          </p>
+        </Modal>
       </div>
     </div>
   );
