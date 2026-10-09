@@ -60,6 +60,12 @@ export async function getConversation(conversationId: string) {
   return getOne<ConversationDoc>(paths.conversations(conversationId));
 }
 
+/** The academy's teacher uid (public settings doc, readable by any member). */
+export async function getTeacherUid(): Promise<string | null> {
+  const snap = await getOne<{ uid: string }>(paths.settings("teacher"));
+  return snap?.data.uid ?? null;
+}
+
 export async function createConversation(
   studentUid: string,
   teacherUid: string,
@@ -67,9 +73,12 @@ export async function createConversation(
 ): Promise<string> {
   const db = getFirestoreDb();
   const ref = await addDoc(collection(db, "conversations"), {
+    kind: "direct",
     participantIds: [studentUid, teacherUid],
     studentId,
     teacherId: teacherUid,
+    groupId: null,
+    name: null,
     createdAt: serverTimestamp(),
     lastMessageAt: null,
     lastMessagePreview: null,
