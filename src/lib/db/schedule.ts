@@ -29,6 +29,11 @@ export function lessonsByGroupQuery(db: Firestore, groupId: string) {
   return query(collection(db, "lessons"), where("groupId", "==", groupId));
 }
 
+/** Multi-group variant for teacher filters (`in` caps at 30 ids). */
+export function lessonsByGroupsQuery(db: Firestore, groupIds: string[]) {
+  return query(collection(db, "lessons"), where("groupId", "in", groupIds.slice(0, 30)));
+}
+
 export async function createLesson(data: Omit<LessonDoc, "createdAt">) {
   const db = getFirestoreDb();
   const ref = await addDoc(collection(db, "lessons"), data);

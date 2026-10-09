@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Plus, ClipboardList, PenLine, Trash2, FileQuestion } from "lucide-react";
 
 import { useQuery, useDocMap } from "@/hooks/useFirestore";
-import { allAssessmentsQuery, assessmentsByGroupQuery, createAssessment, updateAssessment, deleteAssessment } from "@/lib/db/assessments";
+import { allAssessmentsQuery, assessmentsByGroupQuery, assessmentsByGroupsQuery, createAssessment, updateAssessment, deleteAssessment } from "@/lib/db/assessments";
+import { GroupMultiSelect, toggleGroupId } from "@/components/group-multi-select";
 import { allGroupsQuery } from "@/lib/db/groups";
 import { Timestamp } from "firebase/firestore";
 import { ASSESSMENT_TYPES, MAX_ASSESSMENT_SCORE } from "@/lib/constants";
@@ -45,10 +46,24 @@ export function TeacherGradesPage() {
   const { toast } = useToast();
   const groups = useQuery<GroupDoc>(allGroupsQuery);
   const groupsById = useDocMap(groups.docs);
-  const [groupId, setGroupId] = useState("");
+  const [groupIds, setGroupIds] = useState<string[]>([]);
+  const groupFilterKey = groupIds.join(",");
   const assessments = useQuery<AssessmentDoc>(
-    (db) => (groupId ? assessmentsByGroupQuery(db, groupId) : allAssessmentsQuery(db)),
-    [groupId]
+    (db) =>
+      groupIds.length === 0
+        ? allAssessmentsQuery(db)
+        : groupIds.length === 1
+          ? assessmentsByGroupQuery(db, groupIds[0])
+          : assessmentsByGroupsQuery(db, groupIds),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [groupFilterKey]
+  );
+  const sortedAssessments = useMemo(
+    () =>
+      [...(assessments.docs ?? [])].sort(
+        (a, b) => b.data.date.toMillis() - a.data.date.toMillis()
+      ),
+    [assessments.docs]
   );
 
   const [open, setOpen] = useState(false);
@@ -147,18 +162,17 @@ export function TeacherGradesPage() {
         }
       />
 
-      <div className="mb-4 max-w-xs">
-        <Select value={groupId} onChange={(e) => setGroupId(e.target.value)}>
-          <option value="">All groups</option>
-          {(groups.docs ?? []).map((g) => (
-            <option key={g.id} value={g.id}>{g.data.name}</option>
-          ))}
-        </Select>
+      <div className="mb-4">
+        <GroupMultiSelect
+          groups={(groups.docs ?? []).map((g) => ({ id: g.id, name: g.data.name }))}
+          selected={groupIds}
+          onToggle={(id) => setGroupIds((prev) => toggleGroupId(prev, id))}
+        />
       </div>
 
       {assessments.loading ? (
         <SkeletonList count={4} />
-      ) : (assessments.docs ?? []).length === 0 ? (
+      ) : sortedAssessments.length === 0 ? (
         <EmptyState
           icon={ClipboardList}
           title="No assessments yet"
@@ -169,7 +183,7 @@ export function TeacherGradesPage() {
         <Card>
           <CardContent className="p-0">
             <ul className="divide-y divide-border">
-              {(assessments.docs ?? []).map((a) => {
+              {sortedAssessments.map((a) => {
                 const tone = TYPE_TONES[a.data.type];
                 return (
                   <li key={a.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">

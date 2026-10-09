@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { CalendarPlus, CalendarDays, Clock, Pencil, Trash2, MapPin, ListChecks } from "lucide-react";
 
 import { useQuery, useDocMap } from "@/hooks/useFirestore";
-import { allLessonsQuery, lessonsByGroupQuery, createLesson, updateLesson, deleteLesson } from "@/lib/db/schedule";
+import { allLessonsQuery, lessonsByGroupQuery, lessonsByGroupsQuery, createLesson, updateLesson, deleteLesson } from "@/lib/db/schedule";
+import { GroupMultiSelect, toggleGroupId } from "@/components/group-multi-select";
 import { allGroupsQuery } from "@/lib/db/groups";
 import { Timestamp } from "firebase/firestore";
 import { formatDate, formatTime, formatWeekday } from "@/lib/format";
@@ -45,10 +46,17 @@ export function TeacherSchedulePage() {
   const { toast } = useToast();
   const groups = useQuery<GroupDoc>(allGroupsQuery);
   const groupsById = useDocMap(groups.docs);
-  const [groupId, setGroupId] = useState("");
+  const [groupIds, setGroupIds] = useState<string[]>([]);
+  const groupFilterKey = groupIds.join(",");
   const lessons = useQuery<LessonDoc>(
-    (db) => (groupId ? lessonsByGroupQuery(db, groupId) : allLessonsQuery(db)),
-    [groupId]
+    (db) =>
+      groupIds.length === 0
+        ? allLessonsQuery(db)
+        : groupIds.length === 1
+          ? lessonsByGroupQuery(db, groupIds[0])
+          : lessonsByGroupsQuery(db, groupIds),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [groupFilterKey]
   );
 
   const [open, setOpen] = useState(false);
@@ -76,7 +84,7 @@ export function TeacherSchedulePage() {
 
   function openCreate() {
     setEditing(null);
-    setForm({ ...emptyForm, groupId: groupId || "" });
+    setForm({ ...emptyForm, groupId: groupIds[0] ?? "" });
     setOpen(true);
   }
 
@@ -155,13 +163,12 @@ export function TeacherSchedulePage() {
         }
       />
 
-      <div className="mb-4 max-w-xs">
-        <Select value={groupId} onChange={(e) => setGroupId(e.target.value)}>
-          <option value="">All groups</option>
-          {(groups.docs ?? []).map((g) => (
-            <option key={g.id} value={g.id}>{g.data.name}</option>
-          ))}
-        </Select>
+      <div className="mb-4">
+        <GroupMultiSelect
+          groups={(groups.docs ?? []).map((g) => ({ id: g.id, name: g.data.name }))}
+          selected={groupIds}
+          onToggle={(id) => setGroupIds((prev) => toggleGroupId(prev, id))}
+        />
       </div>
 
       {lessons.loading ? (
@@ -170,7 +177,7 @@ export function TeacherSchedulePage() {
         <EmptyState
           icon={CalendarDays}
           title="No lessons planned"
-          description={groupId ? "This group has no lessons yet." : "Plan your first lesson."}
+          description={groupIds.length > 0 ? "These groups have no lessons yet." : "Plan your first lesson."}
           action={<Button onClick={openCreate} leftIcon={<CalendarPlus className="h-4 w-4" aria-hidden />}>New lesson</Button>}
         />
       ) : (

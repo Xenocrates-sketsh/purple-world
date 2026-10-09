@@ -29,6 +29,15 @@ export function assessmentsByGroupQuery(db: Firestore, groupId: string) {
   );
 }
 
+/** Multi-group variant for teacher filters (`in` caps at 30 ids).
+ *  No orderBy (avoids a new composite index) — callers sort client-side. */
+export function assessmentsByGroupsQuery(db: Firestore, groupIds: string[]) {
+  return query(
+    collection(db, "assessments"),
+    where("groupId", "in", groupIds.slice(0, 30))
+  );
+}
+
 export function resultsOfAssessmentQuery(db: Firestore, assessmentId: string) {
   return query(collection(db, paths.resultsOfAssessment(assessmentId)));
 }

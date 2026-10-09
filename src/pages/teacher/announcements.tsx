@@ -4,6 +4,7 @@ import { Megaphone, Plus, Trash2 } from "lucide-react";
 import { useQuery, useDocMap } from "@/hooks/useFirestore";
 import { allAnnouncementsQuery, createAnnouncement, deleteAnnouncement, fanOutNotifications } from "@/lib/db/announcements";
 import { allGroupsQuery } from "@/lib/db/groups";
+import { GroupMultiSelect, toggleGroupId } from "@/components/group-multi-select";
 import { allStudentsQuery } from "@/lib/db/students";
 import { ANNOUNCEMENT_TYPES } from "@/lib/constants";
 import type { AnnouncementTarget, AnnouncementType, AnnouncementDoc, GroupDoc, StudentDoc } from "@/lib/types";
@@ -48,7 +49,7 @@ export function TeacherAnnouncementsPage() {
   const [body, setBody] = useState("");
   const [type, setType] = useState<AnnouncementType>("general");
   const [target, setTarget] = useState<AnnouncementTarget>("all");
-  const [groupId, setGroupId] = useState("");
+  const [groupIds, setGroupIds] = useState<string[]>([]);
   const [studentId, setStudentId] = useState("");
 
   async function onSubmit(e: FormEvent) {
@@ -57,10 +58,14 @@ export function TeacherAnnouncementsPage() {
       toast("Announcements need a title and a message", { variant: "error" });
       return;
     }
+    if (target === "group" && groupIds.length === 0) {
+      toast("Pick at least one group.", { variant: "error" });
+      return;
+    }
     setSaving(true);
     try {
       const recipientKeys = ["all"];
-      if (target === "group" && groupId) recipientKeys.push(`group:${groupId}`);
+      if (target === "group") groupIds.forEach((g) => recipientKeys.push(`group:${g}`));
       if (target === "student" && studentId) recipientKeys.push(`student:${studentId}`);
 
       await createAnnouncement({
@@ -68,7 +73,8 @@ export function TeacherAnnouncementsPage() {
         body: body.trim(),
         type,
         target,
-        groupId: target === "group" ? groupId || null : null,
+        groupId: target === "group" ? (groupIds[0] ?? null) : null,
+        groupIds: target === "group" ? groupIds : [],
         studentId: target === "student" ? studentId || null : null,
         recipientKeys,
       });
@@ -78,7 +84,7 @@ export function TeacherAnnouncementsPage() {
       for (const s of students.docs ?? []) {
         if (!s.data.linkedUid) continue;
         if (target === "all") linked.add(s.data.linkedUid);
-        else if (target === "group" && s.data.groupId === groupId) linked.add(s.data.linkedUid);
+        else if (target === "group" && s.data.groupId != null && groupIds.includes(s.data.groupId)) linked.add(s.data.linkedUid);
         else if (target === "student" && s.id === studentId) linked.add(s.data.linkedUid);
       }
       void fanOutNotifications([...linked], {
@@ -120,8 +126,13 @@ export function TeacherAnnouncementsPage() {
     }
   }
 
-  const targetLabel = (a: { target: AnnouncementTarget; groupId: string | null; studentId: string | null }): string => {
-    if (a.target === "group") return a.groupId ? `Group: ${groupsById.get(a.groupId)?.name ?? "—"}` : "Group";
+  const targetLabel = (a: { target: AnnouncementTarget; groupId: string | null; groupIds?: string[]; studentId: string | null }): string => {
+    if (a.target === "group") {
+      const ids = a.groupIds && a.groupIds.length > 0 ? a.groupIds : a.groupId ? [a.groupId] : [];
+      if (ids.length === 0) return "Group";
+      if (ids.length === 1) return `Group: ${groupsById.get(ids[0])?.name ?? "—"}`;
+      return `${ids.length} groups`;
+    }
     if (a.target === "student") return "Individual student";
     return "Everyone";
   };
@@ -220,13 +231,16 @@ export function TeacherAnnouncementsPage() {
             </Field>
           </div>
           {target === "group" ? (
-            <Field label="Group" htmlFor="a-group" required>
-              <Select id="a-group" value={groupId} onChange={(e) => setGroupId(e.target.value)} required>
-                <option value="">Select group…</option>
-                {(groups.docs ?? []).map((g) => (
-                  <option key={g.id} value={g.id}>{g.data.name}</option>
-                ))}
-              </Select>
+            <Field label="Groups" required>
+              <GroupMultiSelect
+                groups={(groups.docs ?? []).map((g) => ({ id: g.id, name: g.data.name }))}
+                selected={groupIds}
+                onToggle={(id) => setGroupIds((prev) => toggleGroupId(prev, id))}
+                allLabel="Clear selection"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                {groupIds.length === 0 ? "Pick at least one group." : `${groupIds.length} selected`}
+              </p>
             </Field>
           ) : null}
           {target === "student" ? (

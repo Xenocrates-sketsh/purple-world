@@ -214,6 +214,8 @@ export interface AnnouncementDoc {
   type: AnnouncementType;
   target: AnnouncementTarget;
   groupId: string | null;
+  /** All targeted groups (multi-select). groupId mirrors the first. */
+  groupIds: string[];
   studentId: string | null;
   /** Derived for querying, e.g. ["all", "group:abc", "student:xyz"] */
   recipientKeys: string[];
