@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { MessageSquare } from "lucide-react";
 
@@ -5,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { useChatUnread, sortConversations } from "@/hooks/useChatUnread";
 import { useQuery, useDocMap } from "@/hooks/useFirestore";
 import { allStudentsQuery } from "@/lib/db/students";
+import { ensureTeacherSettings } from "@/lib/db/chat";
 import type { StudentDoc } from "@/lib/types";
 import { formatRelative, truncate } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
@@ -23,6 +25,13 @@ export function TeacherChatPage() {
   const studentsById = useDocMap(students.docs);
 
   const sorted = conversations ? sortConversations(conversations) : null;
+
+  // Self-heal the teacher pointer students need to start chats.
+  useEffect(() => {
+    if (uid) {
+      ensureTeacherSettings(uid).catch(() => undefined);
+    }
+  }, [uid]);
 
   return (
     <div>

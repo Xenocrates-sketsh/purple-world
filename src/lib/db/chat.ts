@@ -3,6 +3,7 @@ import {
   collection,
   collectionGroup,
   doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -64,6 +65,20 @@ export async function getConversation(conversationId: string) {
 export async function getTeacherUid(): Promise<string | null> {
   const snap = await getOne<{ uid: string }>(paths.settings("teacher"));
   return snap?.data.uid ?? null;
+}
+
+/**
+ * Self-heal the settings/teacher pointer (call when the teacher opens chat).
+ * Rules let only the teacher write settings, so this runs exactly where it
+ * is allowed to — and unblocks student-initiated conversations.
+ */
+export async function ensureTeacherSettings(teacherUid: string): Promise<void> {
+  const db = getFirestoreDb();
+  const ref = doc(db, paths.settings("teacher"));
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    await setDoc(ref, { uid: teacherUid, createdAt: serverTimestamp() });
+  }
 }
 
 export async function createConversation(

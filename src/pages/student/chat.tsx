@@ -32,7 +32,7 @@ export function StudentChatPage() {
     try {
       const teacherUid = await getTeacherUid();
       if (!teacherUid) {
-        toast("Couldn't reach your teacher right now — try again.", { variant: "error" });
+        toast("Chat isn't set up yet — ask your teacher to open Messages once, then try again.", { variant: "error" });
         return;
       }
       const existing = await findConversation([uid, teacherUid]);
