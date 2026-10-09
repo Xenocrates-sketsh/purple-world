@@ -85,7 +85,7 @@ export function TeacherGradesPage() {
     setForm({
       title: "",
       type: "exercise",
-      groupId: groupId || "",
+      groupId: groupIds[0] ?? "",
       date: new Date().toISOString().slice(0, 10),
       maxScore: String(MAX_ASSESSMENT_SCORE),
       description: "",
