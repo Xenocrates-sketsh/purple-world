@@ -111,13 +111,15 @@ service cloud.firestore {
     }
 
     // A message starts clean: sender-only read, no edit/delete/reactions yet.
+    // NOTE: absent fields are an ERROR in rules (not null), so the
+    // optional fields must be guarded with `in`.
     function validMessageCreate(newData, conversation) {
       return newData.senderId == request.auth.uid
         && newData.readBy.hasAll([request.auth.uid])
         && newData.readBy.hasOnly(conversation.participantIds)
-        && newData.editedAt == null
-        && newData.deletedAt == null
-        && newData.reactions == null;
+        && (!('editedAt' in newData) || newData.editedAt == null)
+        && (!('deletedAt' in newData) || newData.deletedAt == null)
+        && (!('reactions' in newData) || newData.reactions == null);
     }
 
     // Updates may only touch readBy / text+editedAt / deletedAt / reactions,
@@ -198,7 +200,7 @@ service cloud.firestore {
       allow create: if isTeacher();
       allow update: if isTeacher()
         || (isAuth()
-            && resource.data.linkedUid == null
+            && (!('linkedUid' in resource.data) || resource.data.linkedUid == null)
             && request.resource.data.linkedUid == myUid()
             && onlyFields(request.resource.data, resource.data, ['linkedUid']))
         // A claimed student may swap their own preset avatar key only.
@@ -250,7 +252,7 @@ service cloud.firestore {
     // ------------------------------------------------------------------
     match /assessments/{assessmentId} {
       allow read: if isTeacher()
-        || (isStudent() && (resource.data.groupId == null || resource.data.groupId == myGroupId()));
+        || (isStudent() && (!('groupId' in resource.data) || resource.data.groupId == null || resource.data.groupId == myGroupId()));
       allow write: if isTeacher();
 
       match /results/{resultStudentId} {
