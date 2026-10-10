@@ -1,6 +1,7 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword, signOut, linkWithCredential, EmailAuthProvider, createUserWithEmailAndPassword } from "firebase/auth";
+import { LogIn, UserPlus } from "lucide-react";
 
 import { resolveRoleAfterLogin, useAuth } from "@/lib/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
@@ -17,13 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
 
-type Mode = "request" | "signin";
+type Mode = "gateway" | "request" | "signin";
 
 export function LoginPage() {
   const { user, role } = useAuth();
   const navigate = useNavigate();
 
-  const [mode, setMode] = useState<Mode>("request");
+  const [mode, setMode] = useState<Mode>("gateway");
 
   // multi-step request flow: 1 = name+email, 2 = school+number, 3 = age
   const [step, setStep] = useState(1);
@@ -96,10 +97,21 @@ export function LoginPage() {
     })[0];
   }, [myArrivals.docs]);
 
+  // A rejected request drops straight back into the signup steps.
+  useEffect(() => {
+    if (latest?.data.status === "rejected") {
+      setMode("request");
+      setStep(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latest?.data.status]);
+
   // Already signed in with a role — go to the right space.
   if (user && role) {
     return <Navigate to={role === "teacher" ? "/teacher" : "/student"} replace />;
   }
+
+  const showGateway = mode === "gateway" && !latest;
 
   async function submitRequest(e: FormEvent) {
     e.preventDefault();
@@ -311,16 +323,60 @@ export function LoginPage() {
         </Link>
         <div className="card p-5 sm:p-6">
           <h1 className="text-lg font-bold text-foreground">
-            {mode === "request" ? "Join Purple World" : "Welcome back"}
+            {showGateway
+              ? "Welcome"
+              : mode === "request"
+                ? "Join Purple World"
+                : "Welcome back"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "request"
-              ? "Choose your password now — it stays yours once your teacher approves you."
-              : "Student sign-in. Teachers use the teacher sign-in."}
+            {showGateway
+              ? "Log in to your space, or request access as a new student."
+              : mode === "request"
+                ? "Choose your password now — it stays yours once your teacher approves you."
+                : "Student sign-in. Teachers use the teacher sign-in."}
           </p>
 
           {statusPanel ? (
             <div className="mt-6">{statusPanel}</div>
+          ) : null}
+
+          {showGateway ? (
+            <div className="mt-6 grid gap-3">
+              <button
+                type="button"
+                onClick={() => setMode("signin")}
+                className="card-hover group flex items-center gap-4 rounded-2xl border border-border bg-surface p-4 text-left transition-transform hover:-translate-y-0.5"
+              >
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+                  <LogIn className="h-6 w-6" aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-base font-semibold text-foreground">Log in</span>
+                  <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
+                    Already approved? Sign in with your email and password.
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStep(1);
+                  setMode("request");
+                }}
+                className="card-hover group flex items-center gap-4 rounded-2xl border border-border bg-surface p-4 text-left transition-transform hover:-translate-y-0.5"
+              >
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+                  <UserPlus className="h-6 w-6" aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-base font-semibold text-foreground">Sign up</span>
+                  <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
+                    New here? Send a request — your teacher approves it.
+                  </span>
+                </span>
+              </button>
+            </div>
           ) : null}
 
           {mode === "request" && showRequestForm ? (
@@ -456,7 +512,7 @@ export function LoginPage() {
                 </div>
               </form>
             </div>
-          ) : (
+          ) : mode !== "gateway" ? (
             <form onSubmit={submitSignin} className="mt-6 space-y-4">
               <Field label="Email" htmlFor="signin-email">
                 <Input
@@ -491,20 +547,24 @@ export function LoginPage() {
                 Sign in
               </Button>
             </form>
-          )}
+          ) : null}
 
-          <div className="mt-4 flex flex-col gap-2 text-sm">
-            <button
-              type="button"
-              onClick={() => setMode(mode === "request" ? "signin" : "request")}
-              className="font-medium text-primary hover:underline"
-            >
-              {mode === "request" ? "Already a student? Sign in" : "New student? Request access"}
-            </button>
-            <Link to="/forgot-password" className="font-medium text-primary hover:underline">
-              Forgot password?
-            </Link>
-          </div>
+          {mode === "gateway" ? null : (
+            <div className="mt-4 flex flex-col gap-2 text-sm">
+              <button
+                type="button"
+                onClick={() => setMode("gateway")}
+                className="font-medium text-primary hover:underline"
+              >
+                ← Back to options
+              </button>
+              {mode === "signin" ? (
+                <Link to="/forgot-password" className="font-medium text-primary hover:underline">
+                  Forgot password?
+                </Link>
+              ) : null}
+            </div>
+          )}
 
           <p className="mt-4 border-t pt-4 text-center text-sm text-muted-foreground">
             Are you the teacher?{" "}
