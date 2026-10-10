@@ -111,7 +111,7 @@ export function LoginPage() {
     return <Navigate to={role === "teacher" ? "/teacher" : "/student"} replace />;
   }
 
-  const showGateway = mode === "gateway" && !latest;
+  const showGateway = mode === "gateway";
 
   async function submitRequest(e: FormEvent) {
     e.preventDefault();
