@@ -8,7 +8,6 @@ import { Brand } from "@/components/brand";
 import { Avatar } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
-import { ChatLauncher } from "./chat-launcher";
 import { SilkBackground } from "@/components/silk-background";
 import { fruitAvatarSrc } from "@/lib/constants";
 import type { NavItem } from "./nav-config";
@@ -36,10 +35,6 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
   const activeLabel =
     [...primaryNav, ...secondaryNav].find((n) => isActivePath(n, location.pathname))?.label ??
     pageTitle;
-
-  const isChatRoute =
-    location.pathname.startsWith("/teacher/chat") ||
-    location.pathname.startsWith("/student/chat");
 
   async function handleLogout() {
     const { getAuth, signOut } = await import("firebase/auth");
@@ -205,8 +200,6 @@ export function PortalShell({ pageTitle, primaryNav, secondaryNav, children }: P
           </div>
         </div>
       ) : null}
-
-      <ChatLauncher onChatRoute={isChatRoute} />
     </div>
   );
 }

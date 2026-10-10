@@ -71,8 +71,8 @@ export function StudentBlockModal({
       title={blocked ? "Unblock this student?" : "Block this student?"}
       description={
         blocked
-          ? `${name} will regain access to the app and chat right away.`
-          : `${name} will be locked out of the app immediately and will not be able to send chat messages until you unblock them. Their data stays intact.`
+          ? `${name} will regain access to the app right away.`
+          : `${name} will be locked out of the app immediately until you unblock them. Their data stays intact.`
       }
       footer={
         <>

@@ -1,15 +1,13 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, Wallet, MessageSquare, BookOpen, ReceiptText, GraduationCap, FileText, CalendarClock } from "lucide-react";
+import { Sparkles, BookOpen, ReceiptText, GraduationCap, FileText, CalendarClock, Mail } from "lucide-react";
 import { WelcomeTour } from "@/components/welcome-tour";
 import { doc, updateDoc } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase";
 
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@/hooks/useFirestore";
-import { useChatUnread } from "@/hooks/useChatUnread";
 import { useDoc } from "@/hooks/useFirestore";
-import { studentPaymentsQuery } from "@/lib/db/payments";
 import { lessonsByGroupQuery } from "@/lib/db/schedule";
 import { studentAnnouncementsQuery } from "@/lib/db/announcements";
 import {
@@ -17,8 +15,8 @@ import {
   groupLessonResourcesQuery,
 } from "@/lib/db/lessonResources";
 import { paths } from "@/lib/db/paths";
-import { formatRelative, formatMoney, formatTime, formatDateShort, toDate } from "@/lib/format";
-import type { StudentDoc, LessonResourceDoc, LessonDoc, PaymentDoc, AnnouncementDoc } from "@/lib/types";
+import { formatRelative, formatTime, formatDateShort, toDate } from "@/lib/format";
+import type { StudentDoc, LessonResourceDoc, LessonDoc, AnnouncementDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -61,15 +59,10 @@ function useRecentLessonResources(myGroupId: string | null, limit = 4) {
 
 export function StudentDashboardPage() {
   const { user, userDoc } = useAuth();
-  const uid = user?.uid ?? "";
   const studentId = userDoc?.studentId ?? "";
   const groupId = userDoc?.groupId ?? "";
 
   const student = useDoc<StudentDoc>(studentId ? paths.students(studentId) : null);
-  const payments = useQuery<PaymentDoc>(
-    (db) => (studentId ? studentPaymentsQuery(db, studentId) : null),
-    [studentId]
-  );
   const announcements = useQuery<AnnouncementDoc>(
     (db) =>
       studentId
@@ -77,7 +70,6 @@ export function StudentDashboardPage() {
         : null,
     [groupId, studentId]
   );
-  const { unreadCount, unreadCountLoading } = useChatUnread(uid);
 
   const newLessons = useRecentLessonResources(groupId || null, 4);
 
@@ -98,9 +90,6 @@ export function StudentDashboardPage() {
       .sort((a, b) => toDate(a.data.startsAt)!.getTime() - toDate(b.data.startsAt)!.getTime())
       .slice(0, 4);
   }, [schedule.docs]);
-
-  const unpaid = (payments.docs ?? []).filter((p) => p.data.status === "due");
-  const unpaidTotal = unpaid.reduce((sum, p) => sum + (p.data.amount ?? 0), 0);
 
   const name = user?.displayName?.split(" ")[0] || "there";
   const lessonsBusy = useGraceLoading(newLessons.loading);
@@ -151,20 +140,6 @@ export function StudentDashboardPage() {
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Link to="/student/payments" className="card p-4 transition-shadow hover:shadow-md">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Wallet className="h-5 w-5" aria-hidden />
-                <span className="text-xs font-medium uppercase tracking-wide">Balance</span>
-              </div>
-              <p className="mt-1 text-lg font-bold text-foreground">{formatMoney(unpaidTotal)}</p>
-              <p className="mt-0.5 text-xs">
-                {unpaid.length === 0 ? (
-                  <span className="text-success">All settled</span>
-                ) : (
-                  <span className="text-warning">{unpaid.length} outstanding</span>
-                )}
-              </p>
-            </Link>
             <Link to="/student/grades" className="card p-4 transition-shadow hover:shadow-md">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <GraduationCap className="h-5 w-5" aria-hidden />
@@ -186,13 +161,11 @@ export function StudentDashboardPage() {
             </Link>
             <Link to="/student/chat" className="card p-4 transition-shadow hover:shadow-md">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <MessageSquare className="h-5 w-5" aria-hidden />
-                <span className="text-xs font-medium uppercase tracking-wide">Messages</span>
+                <Mail className="h-5 w-5" aria-hidden />
+                <span className="text-xs font-medium uppercase tracking-wide">Contact</span>
               </div>
-              <p className="mt-1 text-lg font-bold text-foreground">{unreadCountLoading ? "…" : unreadCount}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {unreadCount > 0 ? "unread messages" : "all caught up"}
-              </p>
+              <p className="mt-1 text-lg font-bold text-foreground">Miss Hafsa</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Email your teacher</p>
             </Link>
           </div>
 

@@ -10,18 +10,15 @@ import {
   UserPlus,
 } from "lucide-react";
 
-import { useAuth } from "@/lib/auth";
 import { useQuery, useDoc, useDocMap } from "@/hooks/useFirestore";
 import { updateStudent, setStudentGroup, setStudentBlocked, removeStudent } from "@/lib/db/students";
 import { allGroupsQuery } from "@/lib/db/groups";
-import { studentPaymentsQuery } from "@/lib/db/payments";
 import { allAssessmentsQuery, studentResultsQuery } from "@/lib/db/assessments";
 import { notesQuery, addNote, updateNote, deleteNote } from "@/lib/db/notes";
-import { findConversation, createConversation } from "@/lib/db/chat";
 import { paths } from "@/lib/db/paths";
 import { formatDate } from "@/lib/format";
 import { normalizeDZPhone } from "@/lib/format";
-import type { StudentDoc, GroupDoc, NoteEntryDoc, PaymentDoc, AssessmentDoc, AssessmentResultDoc } from "@/lib/types";
+import type { StudentDoc, GroupDoc, NoteEntryDoc, AssessmentDoc, AssessmentResultDoc } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,21 +29,19 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { useToast } from "@/lib/toast";
 import { StudentNotesSection } from "./student-detail/notes-section";
-import { StudentGradesCard, StudentPaymentsCard } from "./student-detail/grades-payments";
+import { StudentGradesCard } from "./student-detail/grades-payments";
 import { StudentActionsCard } from "./student-detail/actions-card";
 import { StudentEditModal, type StudentFormState } from "./student-detail/edit-modal";
 import { StudentInviteModal, StudentBlockModal } from "./student-detail/info-modals";
 
 export function TeacherStudentDetailPage() {
   const { studentId = "" } = useParams();
-  const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const student = useDoc<StudentDoc>(paths.students(studentId));
   const groups = useQuery<GroupDoc>(allGroupsQuery);
   const notes = useQuery<NoteEntryDoc>((db) => notesQuery(db, studentId), [studentId]);
-  const payments = useQuery<PaymentDoc>((db) => studentPaymentsQuery(db, studentId), [studentId]);
   const assessments = useQuery<AssessmentDoc>(allAssessmentsQuery);
   const assessmentsById = useDocMap(assessments.docs);
   const results = useQuery<AssessmentResultDoc>((db) => studentResultsQuery(db, studentId), [studentId]);
@@ -151,23 +146,6 @@ export function TeacherStudentDetailPage() {
       toast("Note deleted", { variant: "info" });
     } catch {
       toast("Could not delete note", { variant: "error" });
-    }
-  }
-
-  async function onChat() {
-    if (!data?.linkedUid) {
-      toast("This student has no account yet — create it from the admin tool first", { variant: "warning" });
-      return;
-    }
-    const teacherUid = user?.uid ?? "";
-    try {
-      const existing = await findConversation([data.linkedUid, teacherUid]);
-      if (!existing) {
-        await createConversation(data.linkedUid, teacherUid, studentId);
-      }
-      navigate(`/teacher/chat/${studentId}`);
-    } catch {
-      toast("Could not open chat", { variant: "error" });
     }
   }
 
@@ -299,12 +277,8 @@ export function TeacherStudentDetailPage() {
         </div>
 
         <div className="space-y-6">
-          <StudentPaymentsCard payments={payments} />
-
           <StudentActionsCard
             blocked={data.blocked}
-            onChat={onChat}
-            onNewPayment={() => toast("Invoice sheet — coming soon", { variant: "info" })}
             onBlock={() => setBlockOpen(true)}
             onDelete={() => setDeleteOpen(true)}
           />

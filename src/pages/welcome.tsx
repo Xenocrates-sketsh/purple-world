@@ -94,8 +94,8 @@ export function WelcomePage() {
           .
         </h1>
         <p className="pw-rise pw-rise-3 mt-2 text-center text-sm leading-relaxed text-muted-foreground">
-          Lessons, exercises, grades and chat with Hafsa — everything for your English exam, in one
-          purple place.
+            Lessons, exercises, grades and email contact with Hafsa — everything for your English exam, in one
+            purple place.
         </p>
 
         {/* signature: quote of the day */}
@@ -125,7 +125,7 @@ export function WelcomePage() {
                     />
                   </p>
                   <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
-                    Sign in to lessons, exercises, grades and chat.
+                    Sign in to lessons, exercises and grades.
                   </p>
                 </div>
               </div>

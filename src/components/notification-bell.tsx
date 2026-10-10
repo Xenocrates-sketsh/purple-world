@@ -10,11 +10,9 @@ import { cn } from "@/lib/cn";
 import { formatRelative } from "@/lib/format";
 
 const TYPE_LABEL: Record<string, string> = {
-  message: "New message",
   new_exercise: "New exercise",
   new_announcement: "Announcement",
   upcoming_lesson: "Upcoming lesson",
-  payment_due: "Payment reminder",
   new_grade: "New grade",
   schedule_change: "Schedule change",
 };

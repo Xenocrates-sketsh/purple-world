@@ -66,17 +66,8 @@ const TeacherAnnouncementsPage = lazy(() =>
 const TeacherLessonsPage = lazy(() =>
   import("@/pages/teacher/lessons").then((m) => ({ default: m.TeacherLessonsPage }))
 );
-const TeacherPaymentsPage = lazy(() =>
-  import("@/pages/teacher/payments").then((m) => ({ default: m.TeacherPaymentsPage }))
-);
 const TeacherChatPage = lazy(() =>
   import("@/pages/teacher/chat").then((m) => ({ default: m.TeacherChatPage }))
-);
-const TeacherChatThreadPage = lazy(() =>
-  import("@/pages/teacher/chat-thread").then((m) => ({ default: m.TeacherChatThreadPage }))
-);
-const TeacherGroupChatPage = lazy(() =>
-  import("@/pages/teacher/group-chat").then((m) => ({ default: m.TeacherGroupChatPage }))
 );
 const TeacherSettingsPage = lazy(() =>
   import("@/pages/teacher/settings").then((m) => ({ default: m.TeacherSettingsPage }))
@@ -94,9 +85,6 @@ const StudentGradesPage = lazy(() =>
 const StudentGroupPage = lazy(() =>
   import("@/pages/student/group").then((m) => ({ default: m.StudentGroupPage }))
 );
-const StudentPaymentsPage = lazy(() =>
-  import("@/pages/student/payments").then((m) => ({ default: m.StudentPaymentsPage }))
-);
 const StudentExercisesPage = lazy(() =>
   import("@/pages/student/exercises").then((m) => ({ default: m.StudentExercisesPage }))
 );
@@ -108,9 +96,6 @@ const StudentLessonsPage = lazy(() =>
 );
 const StudentChatPage = lazy(() =>
   import("@/pages/student/chat").then((m) => ({ default: m.StudentChatPage }))
-);
-const StudentChatThreadPage = lazy(() =>
-  import("@/pages/student/chat-thread").then((m) => ({ default: m.StudentChatThreadPage }))
 );
 const StudentSettingsPage = lazy(() =>
   import("@/pages/student/settings").then((m) => ({ default: m.StudentSettingsPage }))
@@ -215,10 +200,7 @@ export function App() {
               <Route path="exercises/:exerciseId" element={<TeacherExerciseDetailPage />} />
               <Route path="announcements" element={<TeacherAnnouncementsPage />} />
               <Route path="lessons" element={<TeacherLessonsPage />} />
-              <Route path="payments" element={<TeacherPaymentsPage />} />
               <Route path="chat" element={<TeacherChatPage />} />
-              <Route path="chat/:studentId" element={<TeacherChatThreadPage />} />
-              <Route path="chat/group/:conversationId" element={<TeacherGroupChatPage />} />
               <Route path="settings" element={<TeacherSettingsPage />} />
             </Route>
           </Route>
@@ -229,12 +211,10 @@ export function App() {
               <Route path="profile" element={<StudentProfilePage />} />
               <Route path="grades" element={<StudentGradesPage />} />
               <Route path="group" element={<StudentGroupPage />} />
-              <Route path="payments" element={<StudentPaymentsPage />} />
               <Route path="exercises" element={<StudentExercisesPage />} />
               <Route path="announcements" element={<StudentAnnouncementsPage />} />
               <Route path="lessons" element={<StudentLessonsPage />} />
               <Route path="chat" element={<StudentChatPage />} />
-              <Route path="chat/:conversationId" element={<StudentChatThreadPage />} />
               <Route path="settings" element={<StudentSettingsPage />} />
             </Route>
           </Route>

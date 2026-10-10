@@ -1,72 +1,44 @@
-import { useState } from "react";
-import { MessageSquare } from "lucide-react";
+import { Mail, ExternalLink } from "lucide-react";
 
-import { useAuth } from "@/lib/auth";
-import { useQuery } from "@/hooks/useFirestore";
-import { studentConversationQuery, findConversation, createConversation, getTeacherUid } from "@/lib/db/chat";
-import type { ConversationDoc } from "@/lib/types";
-import { ChatThread } from "@/components/chat/chat-thread";
 import { PageHeader } from "@/components/page-header";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { SkeletonList } from "@/components/ui/skeleton";
-import { useGraceLoading } from "@/hooks/useGraceLoading";
-import { useToast } from "@/lib/toast";
+
+const TEACHER_EMAIL = "lerguethafsa@gmail.com";
+const GMAIL_URL = `https://mail.google.com/mail/?view=cm&to=${TEACHER_EMAIL}`;
 
 export function StudentChatPage() {
-  const { user, userDoc } = useAuth();
-  const { toast } = useToast();
-  const uid = user?.uid ?? "";
-  const conversation = useQuery<ConversationDoc>(
-    (db) => (uid ? studentConversationQuery(db, uid) : null),
-    [uid]
-  );
-
-  const conv = (conversation.docs ?? [])[0];
-  const conversationBusy = useGraceLoading(conversation.loading);
-  const [starting, setStarting] = useState(false);
-
-  async function startChat() {
-    if (!uid || starting) return;
-    setStarting(true);
-    try {
-      const teacherUid = await getTeacherUid();
-      if (!teacherUid) {
-        toast("Chat isn't set up yet — ask your teacher to open Messages once, then try again.", { variant: "error" });
-        return;
-      }
-      const existing = await findConversation([uid, teacherUid]);
-      if (!existing) {
-        await createConversation(uid, teacherUid, userDoc?.studentId ?? null);
-      }
-      // The live query above picks the thread up automatically.
-    } catch {
-      toast("Couldn't start the chat — try again.", { variant: "error" });
-    } finally {
-      setStarting(false);
-    }
-  }
-
   return (
     <div>
-      <PageHeader title="Messages" description="Chat privately with your teacher." />
+      <PageHeader title="Messages" description="Reach your teacher directly." />
 
-      {conversationBusy ? (
-        <SkeletonList count={3} />
-      ) : !conv ? (
-        <EmptyState
-          icon={MessageSquare}
-          title="No conversation yet"
-          description="Start a chat with your teacher any time."
-          action={
-            <Button onClick={startChat} loading={starting}>
-              Message your teacher
-            </Button>
-          }
-        />
-      ) : (
-        <ChatThread conversationId={conv.id} myUid={uid} otherName="Teacher" />
-      )}
+      <Card>
+        <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+            <Mail className="h-7 w-7" aria-hidden />
+          </span>
+          <p className="text-base font-semibold text-foreground">Contact Miss Hafsa</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Send her an email at{" "}
+            <a href={`mailto:${TEACHER_EMAIL}`} className="font-medium text-primary hover:underline">
+              {TEACHER_EMAIL}
+            </a>{" "}
+            — she replies as soon as she can.
+          </p>
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+            <a href={`mailto:${TEACHER_EMAIL}?subject=${encodeURIComponent("Question from a Purple World student")}`}>
+              <Button leftIcon={<Mail className="h-4 w-4" aria-hidden />}>
+                Open mail app
+              </Button>
+            </a>
+            <a href={GMAIL_URL} target="_blank" rel="noreferrer">
+              <Button variant="secondary" leftIcon={<ExternalLink className="h-4 w-4" aria-hidden />}>
+                Open Gmail
+              </Button>
+            </a>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -2,24 +2,19 @@ import { Link } from "react-router-dom";
 import {
   Users,
   BookOpen,
-  Wallet,
   CalendarClock,
-  MessageSquare,
   FileText,
   ArrowRight,
   UserPlus,
 } from "lucide-react";
 
-import { useAuth } from "@/lib/auth";
 import { useQuery } from "@/hooks/useFirestore";
-import { useChatUnread } from "@/hooks/useChatUnread";
 import { allStudentsQuery } from "@/lib/db/students";
 import { arrivalsQuery } from "@/lib/db/arrivals";
 import { allGroupsQuery } from "@/lib/db/groups";
-import { allPaymentsQuery } from "@/lib/db/payments";
 import { allAnnouncementsQuery } from "@/lib/db/announcements";
 import { formatTime, formatRelative, toDate } from "@/lib/format";
-import type { LessonDoc, SubmissionDoc, StudentDoc, GroupDoc, PaymentDoc, AnnouncementDoc, ArrivalDoc } from "@/lib/types";
+import type { LessonDoc, SubmissionDoc, StudentDoc, GroupDoc, AnnouncementDoc, ArrivalDoc } from "@/lib/types";
 import { PageHeader, StatCard } from "@/components/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -27,12 +22,8 @@ import { SkeletonList } from "@/components/ui/skeleton";
 import { collection, collectionGroup, orderBy, query, where } from "firebase/firestore";
 
 export function TeacherDashboardPage() {
-  const { user } = useAuth();
-  const uid = user?.uid ?? "";
-
   const students = useQuery<StudentDoc>(allStudentsQuery);
   const groups = useQuery<GroupDoc>(allGroupsQuery);
-  const payments = useQuery<PaymentDoc>(allPaymentsQuery);
   const announcements = useQuery<AnnouncementDoc>(allAnnouncementsQuery);
   const pending = useQuery<SubmissionDoc>(
     (db) =>
@@ -56,15 +47,11 @@ export function TeacherDashboardPage() {
       ),
     [start.getTime()]
   );
-  const { unreadCount, unreadCountLoading } = useChatUnread(uid);
 
   const arrivals = useQuery<ArrivalDoc>(arrivalsQuery);
   const pendingArrivals = (arrivals.docs ?? []).filter((a) => a.data.status === "pending").length;
 
   const activeStudents = (students.docs ?? []).filter((s) => s.data.active).length;
-  const duePayments = (payments.docs ?? []).filter(
-    (p) => p.data.status === "due" && toDate(p.data.dueDate) != null && toDate(p.data.dueDate)! < new Date()
-  ).length;
   const toReview = (pending.docs ?? []).length;
 
   const todayLessons = (today.docs ?? []).filter((l) => {
@@ -110,19 +97,6 @@ export function TeacherDashboardPage() {
           value={groups.loading ? "…" : (groups.docs ?? []).length}
           icon={<BookOpen className="h-5 w-5" aria-hidden />}
           tone="info"
-        />
-        <StatCard
-          label="Payments due"
-          value={payments.loading ? "…" : duePayments}
-          icon={<Wallet className="h-5 w-5" aria-hidden />}
-          tone={duePayments > 0 ? "warning" : "success"}
-          hint={duePayments > 0 ? "overdue" : "all settled"}
-        />
-        <StatCard
-          label="Unread chats"
-          value={unreadCountLoading ? "…" : unreadCount}
-          icon={<MessageSquare className="h-5 w-5" aria-hidden />}
-          tone={unreadCount > 0 ? "danger" : "neutral"}
         />
       </div>
 

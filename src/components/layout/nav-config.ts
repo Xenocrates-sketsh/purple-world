@@ -4,7 +4,6 @@ import {
   ClipboardList,
   Megaphone,
   CalendarClock,
-  Wallet,
   GraduationCap,
   CalendarDays,
   UserRoundCheck,
@@ -26,7 +25,6 @@ export const teacherPrimaryNav: NavItem[] = [
   { to: "/teacher/students", label: "Students", icon: GraduationCap },
   { to: "/teacher/schedule", label: "Schedule", icon: CalendarDays },
   { to: "/teacher/chat", label: "Messages", icon: MessageSquare },
-  { to: "/teacher/payments", label: "Payments", icon: Wallet },
 ];
 
 export const teacherSecondaryNav: NavItem[] = [
@@ -49,7 +47,6 @@ export const studentPrimaryNav: NavItem[] = [
 
 export const studentSecondaryNav: NavItem[] = [
   { to: "/student/group", label: "My Group", icon: CalendarClock },
-  { to: "/student/payments", label: "Payments", icon: Wallet },
   { to: "/student/lessons", label: "Lessons", icon: BookOpen },
   { to: "/student/profile", label: "Profile", icon: GraduationCap },
   { to: "/student/settings", label: "Settings", icon: Settings },
